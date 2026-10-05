@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Complaint Registration | Lab Computer Issue Tracker</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="logo-icon">💻</div>
+                <div class="brand-text">
+                    <h1>LabSys Care</h1>
+                    <span>System Complaint Registration</span>
+                </div>
+            </div>
+
+            <!-- Header User Profile & Actions -->
+            <div id="nav-user-section" class="user-nav-actions" style="display: none;">
+                <div class="user-info-badge">
+                    <span id="user-display-name" class="user-name">Student</span>
+                    <span id="user-role-badge" class="badge badge-student">Student</span>
+                </div>
+                <button id="btn-logout" class="btn btn-outline-danger btn-sm">Log Out</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+        <!-- Toast Notification Area -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- AUTH VIEW (Login & Signup) -->
+        <section id="auth-section" class="auth-wrapper">
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <button class="tab-btn active" data-tab="login-tab">Student / Admin Login</button>
+                    <button class="tab-btn" data-tab="signup-tab">Student Sign Up</button>
+                </div>
+
+                <!-- LOGIN FORM -->
+                <div id="login-tab" class="auth-panel active">
+                    <div class="panel-header">
+                        <h2>Welcome Back</h2>
+                        <p>Sign in with your Roll Number, Username, or Email</p>
+                    </div>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-id">Username, Roll No, or Email</label>
+                            <input type="text" id="login-id" placeholder="e.g. 21CS042 or admin" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" placeholder="Enter your password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                    </form>
+
+                    <div class="admin-hint-box">
+                        <div class="hint-header">
+                            <span class="hint-badge">Admin Note</span>
+                        </div>
+                        <p>Default server admin: <strong>admin</strong> | Password: <strong>admin123</strong><br>
+                        <em>(Created via <code>create_admin.py</code> server file)</em></p>
+                    </div>
+                </div>
+
+                <!-- SIGNUP FORM -->
+                <div id="signup-tab" class="auth-panel">
+                    <div class="panel-header">
+                        <h2>Student Registration</h2>
+                        <p>Create an account to report issues with lab computers</p>
+                    </div>
+                    <form id="signup-form">
+                        <div class="form-group">
+                            <label for="signup-fullname">Full Name</label>
+                            <input type="text" id="signup-fullname" placeholder="e.g. Alex Johnson" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-username">Student Roll Number / Username</label>
+                            <input type="text" id="signup-username" placeholder="e.g. 21CS105" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-email">College / Personal Email</label>
+                            <input type="email" id="signup-email" placeholder="e.g. alex@college.edu" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-password">Password</label>
+                            <input type="password" id="signup-password" placeholder="Choose a password (min 4 chars)" minlength="4" required>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-block">Create Student Account</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- STUDENT DASHBOARD -->
+        <section id="student-section" class="dashboard-section" style="display: none;">
+            <div class="section-top-bar">
+                <div class="welcome-box">
+                    <h2>Student Portal</h2>
+                    <p>Report hardware, software, or network issues in any college lab</p>
+                </div>
+                <div class="section-nav-pills">
+                    <button class="pill-btn active" data-view="student-new-complaint">➕ Register Complaint</button>
+                    <button class="pill-btn" data-view="student-my-complaints">📋 My Complaints (<span id="my-complaints-count">0</span>)</button>
+                </div>
+            </div>
+
+            <!-- View 1: New Complaint Form -->
+            <div id="student-new-complaint" class="view-panel active">
+                <div class="card form-card">
+                    <div class="card-header">
+                        <h3>System Issue Registration Form</h3>
+                        <p>Fill out the details below. Our lab administrators will review and resolve it.</p>
+                    </div>
+                    <form id="complaint-form">
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="lab-name">Lab Location / Lab Name *</label>
+                                <select id="lab-name" required>
+                                    <option value="" disabled selected>-- Select Laboratory --</option>
+                                    <option value="Lab 1 - Programming & Data Structures">Lab 1 - Programming & Data Structures</option>
+                                    <option value="Lab 2 - Artificial Intelligence & Data Science">Lab 2 - Artificial Intelligence & Data Science</option>
+                                    <option value="Lab 3 - Computer Networks & Cyber Security">Lab 3 - Computer Networks & Cyber Security</option>
+                                    <option value="Lab 4 - Web Technologies & Cloud Lab">Lab 4 - Web Technologies & Cloud Lab</option>
+                                    <option value="Lab 5 - Hardware & Embedded Systems">Lab 5 - Hardware & Embedded Systems</option>
+                                    <option value="Lab 6 - CAD / Graphics Workstations">Lab 6 - CAD / Graphics Workstations</option>
+                                    <option value="Common Computing Center (Library)">Common Computing Center (Library)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col">
+                                <label for="system-no">System / PC Identification Number *</label>
+                                <input type="text" id="system-no" placeholder="e.g. PC-07, SYS-14, ROW-2-PC3" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="issue-type">Issue Category *</label>
+                                <select id="issue-type" required>
+                                    <option value="" disabled selected>-- Select Problem Type --</option>
+                                    <option value="Hardware / CPU / Power Issue">Hardware / CPU / Power Issue</option>
+                                    <option value="Monitor / Display Fault">Monitor / Display Fault (Blank/Flickering)</option>
+                                    <option value="Keyboard / Mouse / Peripherals">Keyboard / Mouse / Peripherals Not Working</option>
+                                    <option value="Operating System / Blue Screen / Boot Failure">Operating System / Blue Screen / Boot Failure</option>
+                                    <option value="Internet / LAN / Network Connectivity">Internet / LAN / Network Connectivity</option>
+                                    <option value="Software / IDE / Compiler Missing or Crashing">Software / IDE / Compiler Missing or Crashing</option>
+                                    <option value="Slow Performance / Virus / Freeze">System Freezing / Extremely Slow</option>
+                                    <option value="Other">Other Lab Equipment Issue</option>
+                                </select>
+                            </div>
+                            <div class="form-group col">
+                                <label for="priority">Urgency / Priority *</label>
+                                <select id="priority" required>
+                                    <option value="Low">Low - Minor problem</option>
+                                    <option value="Medium" selected>Medium - Normal issue</option>
+                                    <option value="High">High - Blocking lab practical work</option>
+                                    <option value="Critical">Critical - Urgent hardware failure</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Detailed Description of the Issue *</label>
+                            <textarea id="description" rows="4" placeholder="Please describe exactly what happens (e.g. The PC beeps repeatedly on power on and doesn't boot into Windows, or the mouse left-click button is broken)..." required minlength="5"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">Submit Complaint</button>
+                            <button type="reset" class="btn btn-secondary">Reset Form</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- View 2: Student My Complaints List -->
+            <div id="student-my-complaints" class="view-panel">
+                <div class="card">
+                    <div class="card-header flex-header">
+                        <div>
+                            <h3>My Registered Complaints</h3>
+                            <p>Track the progress and admin remarks for your reported system issues</p>
+                        </div>
+                        <button id="btn-refresh-student" class="btn btn-outline-primary btn-sm">🔄 Refresh List</button>
+                    </div>
+
+                    <div id="student-complaints-list" class="complaints-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN DASHBOARD -->
+        <section id="admin-section" class="dashboard-section" style="display: none;">
+            <div class="section-top-bar">
+                <div class="welcome-box">
+                    <h2>Admin Lab System Control Panel</h2>
+                    <p>Review, track, and update complaint tickets submitted by students</p>
+                </div>
+                <button id="btn-refresh-admin" class="btn btn-outline-primary">🔄 Refresh Complaints & Stats</button>
+            </div>
+
+            <!-- Admin Stats Counter Cards -->
+            <div class="stats-grid">
+                <div class="stat-card stat-total">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="stat-total">0</span>
+                        <span class="stat-label">Total Complaints</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-pending">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="stat-pending">0</span>
+                        <span class="stat-label">Pending Review</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-progress">
+                    <div class="stat-icon">🔧</div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="stat-progress">0</span>
+                        <span class="stat-label">In Progress</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-resolved">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="stat-resolved">0</span>
+                        <span class="stat-label">Resolved</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Search Toolbar -->
+            <div class="card filter-toolbar">
+                <div class="filter-group flex-1">
+                    <label for="admin-search">Search Tickets</label>
+                    <input type="text" id="admin-search" placeholder="Search by student, roll no, system, or issue...">
+                </div>
+                <div class="filter-group">
+                    <label for="admin-filter-lab">Filter by Lab</label>
+                    <select id="admin-filter-lab">
+                        <option value="all">All Labs</option>
+                        <option value="Lab 1 - Programming & Data Structures">Lab 1</option>
+                        <option value="Lab 2 - Artificial Intelligence & Data Science">Lab 2</option>
+                        <option value="Lab 3 - Computer Networks & Cyber Security">Lab 3</option>
+                        <option value="Lab 4 - Web Technologies & Cloud Lab">Lab 4</option>
+                        <option value="Lab 5 - Hardware & Embedded Systems">Lab 5</option>
+                        <option value="Lab 6 - CAD / Graphics Workstations">Lab 6</option>
+                        <option value="Common Computing Center (Library)">Library Center</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="admin-filter-status">Filter by Status</label>
+                    <select id="admin-filter-status">
+                        <option value="all">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Complaints Table for Admin -->
+            <div class="card table-card">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#ID</th>
+                                <th>Student Details</th>
+                                <th>Lab & System</th>
+                                <th>Issue Type & Description</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Date Filed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-complaints-tbody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ADMIN ACTION MODAL (Update Status & Remarks) -->
+    <div id="status-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 id="modal-title">Update Complaint #</h3>
+                <button id="modal-close" class="btn-close">&times;</button>
+            </div>
+            <form id="modal-status-form">
+                <input type="hidden" id="modal-complaint-id">
+                
+                <div class="modal-body">
+                    <div class="modal-info-summary" id="modal-summary">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-status-select">Update Status *</label>
+                        <select id="modal-status-select" required>
+                            <option value="Pending">Pending (Awaiting Technician)</option>
+                            <option value="In Progress">In Progress (Under Repair/Inspection)</option>
+                            <option value="Resolved">Resolved (System Fixed & Verified)</option>
+                            <option value="Rejected">Rejected (Invalid/Duplicate)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-admin-remarks">Admin Remarks / Action Taken</label>
+                        <textarea id="modal-admin-remarks" rows="3" placeholder="e.g. Replaced faulty RAM stick; PC tested and working normally."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="btn-delete-complaint" class="btn btn-outline-danger">Delete Ticket</button>
+                    <div class="right-actions">
+                        <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Scripts -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
