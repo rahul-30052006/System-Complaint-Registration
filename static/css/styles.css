@@ -37,6 +37,10 @@
 body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: var(--bg-main);
+    background-image: linear-gradient(rgba(248, 250, 252, 0.68), rgba(248, 250, 252, 0.80)), url("../images/auth-background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.5;
     min-height: 100vh;
