@@ -49,7 +49,6 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
     ├── admin-login.html     # Separate administrator sign-in
     ├── css/styles.css
     ├── images/lab-background-poster.jpg
-    ├── videos/computer-lab.mp4
     └── js/
         ├── app.js
         └── admin-login.js
@@ -104,7 +103,7 @@ After signing in, users are taken to the role-appropriate dashboard at `/dashboa
 ## Configuration and deployment
 
 - The SQLite database is stored locally in `complaints.db`; back it up before replacing or removing it.
-- The login-page background video is a Pexels stock clip by Legacy of Fire: [Students Engaged in Computer Lab Learning](https://www.pexels.com/video/students-engaged-in-computer-lab-learning-31667523/), used under the [Pexels license](https://www.pexels.com/license/).
+- The login pages use a static computer-lab background image, so no video download or playback is required.
 - The bundled bearer-token signing key is for local development. Configure a private secret and restrict CORS origins before deploying this application to a public environment.
 - Use HTTPS and a production ASGI server configuration for deployments; do not use `--reload` outside development.
 
