@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | LabSys Care</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <a class="brand" href="/" style="text-decoration: none;">
+                <div class="logo-icon">💻</div>
+                <div class="brand-text">
+                    <h1>LabSys Care</h1>
+                    <span>System Complaint Registration</span>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div id="toast-container" class="toast-container"></div>
+        <section class="auth-wrapper">
+            <div class="auth-card">
+                <div class="auth-panel active">
+                    <div class="panel-header">
+                        <h2>Administrator Login</h2>
+                        <p>Sign in to manage system complaints</p>
+                    </div>
+                    <form id="admin-login-form">
+                        <div class="form-group">
+                            <label for="admin-login-id">Admin Username or Email</label>
+                            <input type="text" id="admin-login-id" placeholder="Enter your admin username or email" autocomplete="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-login-password">Password</label>
+                            <input type="password" id="admin-login-password" placeholder="Enter your password" autocomplete="current-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Sign In as Admin</button>
+                    </form>
+                </div>
+                <div class="auth-links">
+                    <span>Are you a student?</span>
+                    <a href="/student-login">Go to Student Login</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/js/admin-login.js"></script>
+</body>
+</html>

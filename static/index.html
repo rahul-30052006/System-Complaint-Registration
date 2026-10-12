@@ -42,20 +42,20 @@
         <section id="auth-section" class="auth-wrapper">
             <div class="auth-card">
                 <div class="auth-tabs">
-                    <button class="tab-btn active" data-tab="login-tab">Student / Admin Login</button>
+                    <button class="tab-btn active" data-tab="login-tab">Student Sign In</button>
                     <button class="tab-btn" data-tab="signup-tab">Student Sign Up</button>
                 </div>
 
                 <!-- LOGIN FORM -->
                 <div id="login-tab" class="auth-panel active">
                     <div class="panel-header">
-                        <h2>Welcome Back</h2>
+                        <h2>Student Login</h2>
                         <p>Sign in with your Roll Number, Username, or Email</p>
                     </div>
                     <form id="login-form">
                         <div class="form-group">
                             <label for="login-id">Username, Roll No, or Email</label>
-                            <input type="text" id="login-id" placeholder="e.g. 21CS042 or admin" required>
+                            <input type="text" id="login-id" placeholder="e.g. 21CS042" required>
                         </div>
                         <div class="form-group">
                             <label for="login-password">Password</label>
@@ -196,6 +196,10 @@
                     <div id="student-complaints-list" class="complaints-grid">
                         <!-- Populated by JS -->
                     </div>
+                </div>
+                <div class="auth-links">
+                    <span>Administrator?</span>
+                    <a href="/admin-login">Go to Admin Login</a>
                 </div>
             </div>
         </section>

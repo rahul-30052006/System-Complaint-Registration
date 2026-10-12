@@ -360,3 +360,12 @@ def serve_index():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"message": "System Complaint Registration API is running. Static frontend not yet created."}
+
+@app.get("/student-login", include_in_schema=False)
+def serve_student_login():
+    return serve_index()
+
+@app.get("/admin-login", include_in_schema=False)
+def serve_admin_login():
+    admin_login_path = os.path.join(STATIC_DIR, "admin-login.html")
+    return FileResponse(admin_login_path)

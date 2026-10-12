@@ -143,6 +143,11 @@ async function handleLogin(e) {
 
     try {
         const data = await apiRequest("/api/auth/login", "POST", { login_id, password });
+        if (data.user.role !== "student") {
+            showToast("This page is for student accounts. Please use Admin Login.", "error");
+            return;
+        }
+
         state.token = data.access_token;
         state.user = data.user;
         localStorage.setItem("token", data.access_token);
