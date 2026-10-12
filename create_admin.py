@@ -1,12 +1,8 @@
 """
-Server file to create or reset an Administrator account.
-Usage:
-    python create_admin.py
-or with arguments:
-    python create_admin.py <username> <email> <password> <full_name>
-Example:
-    python create_admin.py admin admin@lab.local admin123 "Lab Administrator"
+Command-line utility to create or reset an Administrator account.
+Run interactively with `python create_admin.py`; the password prompt is hidden.
 """
+import getpass
 import sys
 from datetime import datetime
 from database import get_db, init_db
@@ -46,27 +42,30 @@ def create_or_update_admin(username="rahul", email="rahulrsrahul54@mail.com", pa
     print("Admin Account Details:")
     print(f"  Username  : {username}")
     print(f"  Email     : {email}")
-    print(f"  Password  : {password}")
     print(f"  Full Name : {full_name}")
     print(f"  Role      : admin")
     print("-" * 50)
 
 if __name__ == "__main__":
-    if len(sys.argv) == 5:
-        u, e, p, fn = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-        create_or_update_admin(u, e, p, fn)
-    elif len(sys.argv) == 1:
-        # Prompt or use defaults if run directly
-        print("Creating Administrator Account (Press ENTER to accept default values):")
-        try:
-            username = input("Username [default: admin]: ").strip() or "admin"
-            email = input("Email [default: admin@lab.local]: ").strip() or "admin@lab.local"
-            password = input("Password [default: admin123]: ").strip() or "admin123"
-            full_name = input("Full Name [default: Lab Administrator]: ").strip() or "Lab Administrator"
-            create_or_update_admin(username, email, password, full_name)
-        except EOFError:
-            # Non-interactive fallback
-            create_or_update_admin()
-    else:
-        print("Usage: python create_admin.py [username email password full_name]")
+    if len(sys.argv) != 1:
+        print("Usage: python create_admin.py")
+        sys.exit(1)
+
+    print("Create or reset an Administrator account:")
+    try:
+        username = input("Username [default: admin]: ").strip() or "admin"
+        email = input("Email [default: admin@lab.local]: ").strip() or "admin@lab.local"
+        password = getpass.getpass("Password: ")
+        password_confirmation = getpass.getpass("Confirm password: ")
+        full_name = input("Full Name [default: Lab Administrator]: ").strip() or "Lab Administrator"
+        if not password:
+            raise ValueError("Administrator password must not be empty.")
+        if password != password_confirmation:
+            raise ValueError("Passwords do not match.")
+        create_or_update_admin(username, email, password, full_name)
+    except EOFError:
+        print("Administrator setup requires interactive input.", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as error:
+        print(error, file=sys.stderr)
         sys.exit(1)

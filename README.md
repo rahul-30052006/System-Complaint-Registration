@@ -1,17 +1,17 @@
-# System Complaint Registration (LabSys Care)
+# LabSys Care — System Complaint Registration
 
-A lightweight, robust web application for managing and resolving computer system issues in college and university computer laboratories.
+A responsive complaint-management portal for reporting, tracking, and resolving computer-lab system issues. Students can submit and follow tickets; administrators can triage, update, and resolve them from a separate dashboard.
 
-## 🚀 Tech Stack
+## Tech Stack
 
 - **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
 - **Database**: SQLite3 (Embedded, zero external DB setup needed)
-- **Security**: PBKDF2 HMAC-SHA256 password hashing & tamper-proof signed bearer tokens
+- **Security**: PBKDF2 HMAC-SHA256 password hashing and signed bearer tokens
 - **Frontend**: Vanilla HTML5, Modern CSS (Responsive + Custom Variables), and Vanilla JavaScript
 
 ---
 
-## 🌟 Key Features
+## Features
 
 ### 👨‍🎓 For Students:
 - **Sign Up & Login**: Students can register with Roll Number/Username, Name, and Email.
@@ -24,7 +24,7 @@ A lightweight, robust web application for managing and resolving computer system
 - **Track Status**: View all your submitted complaints with real-time status badges (`Pending`, `In Progress`, `Resolved`, `Rejected`) and read technician remarks.
 
 ### 🛡️ For Administrators:
-- **Created via Server File**: Admins can be created/managed via `create_admin.py`.
+- **Admin setup**: Admin accounts are provisioned locally with `create_admin.py`; passwords are entered through a hidden, confirmed prompt.
 - **Live Statistics Overview**: Counters for Total, Pending, In Progress, and Resolved complaints.
 - **Search & Filter**: Search complaints by student name, roll number, system ID, or keyword; filter by lab and status.
 - **Action & Resolution**:
@@ -34,65 +34,77 @@ A lightweight, robust web application for managing and resolving computer system
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
-foxtech mini project/
-│
-├── main.py              # FastAPI server, API endpoints, static file hosting
-├── database.py          # SQLite database connection & schema tables
-├── auth.py              # Password hashing & authentication token handlers
-├── create_admin.py      # Server file to create or reset administrator accounts
-├── requirements.txt     # Python package requirements
-├── README.md            # Project documentation & run guide
-│
-└── static/              # Frontend files
-    ├── index.html       # Clean responsive single-page web interface
-    ├── css/
-    │   └── styles.css   # Modern styling, cards, tables, modals, toasts
+.
+├── main.py                  # FastAPI application and API routes
+├── database.py              # SQLite schema and connection helpers
+├── auth.py                  # Password hashing and bearer-token helpers
+├── create_admin.py          # CLI utility for administrator accounts
+├── requirements.txt
+├── complaints.db            # Local SQLite database (created at runtime)
+└── static/
+    ├── index.html           # Student sign-in, registration, and dashboards
+    ├── admin-login.html     # Separate administrator sign-in
+    ├── css/styles.css
+    ├── images/auth-background.jpg
     └── js/
-        └── app.js       # Dynamic UI rendering, API fetch calls, auth state
+        ├── app.js
+        └── admin-login.js
 ```
 
 ---
 
 ## 🛠️ Getting Started
 
-### 1. Install Dependencies
+### 1. Create and activate a virtual environment
+
+```bash
+python -m venv .venv
+```
+
+On Windows:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Create Administrator Account via Server File
-Run the server file:
+### 3. Create an administrator account
+
+Run the setup utility and enter a strong, unique password when prompted:
 ```bash
 python create_admin.py
 ```
-Or specify custom admin credentials directly:
-```bash
-python create_admin.py admin admin@lab.local admin123 "Lab Administrator"
-```
 
-> **Default Admin Credentials (if run without arguments):**
-> - **Username**: `admin`
-> - **Password**: `admin123`
-
-### 3. Start the Server
+### 4. Start the server
 ```bash
 uvicorn main:app --reload --port 8001
 ```
-*(You can also use `--port 8000` or any preferred port)*
 
-### 4. Open in Your Browser
-Visit the admin login page:
+### 5. Open the application
+
+Administrator sign-in:
 ```text
 http://127.0.0.1:8001
 ```
-Student sign-in and registration are available on their separate page:
+
+Student sign-in and registration:
 ```text
 http://127.0.0.1:8001/student-login
 ```
-After signing in, users are taken to the dashboard at `/dashboard`.
+
+After signing in, users are taken to the role-appropriate dashboard at `/dashboard`. FastAPI's interactive API documentation is available at `/docs`.
+
+## Configuration and deployment
+
+- The SQLite database is stored locally in `complaints.db`; back it up before replacing or removing it.
+- The bundled bearer-token signing key is for local development. Configure a private secret and restrict CORS origins before deploying this application to a public environment.
+- Use HTTPS and a production ASGI server configuration for deployments; do not use `--reload` outside development.
 
 ---
 
@@ -111,6 +123,6 @@ After signing in, users are taken to the dashboard at `/dashboard`.
 | `DELETE` | `/api/admin/complaints/{id}` | Remove a complaint ticket | Admin |
 | `GET` | `/` | Admin login page | Public |
 | `GET` | `/student-login` | Student login and registration page | Public |
-| `GET` | `/dashboard` | Student or admin dashboard | Authenticated |
+| `GET` | `/dashboard` | Student or admin dashboard | Public page; API data requires authentication |
 
 The `/admin-login` route is an alias for the administrator login page.

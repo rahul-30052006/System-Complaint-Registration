@@ -1,11 +1,11 @@
 import os
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from database import get_db, init_db
 from auth import (
@@ -135,7 +135,6 @@ def login(req: LoginRequest):
     }
 
 
-@app.get("/admin_function")
 def create_or_update_admin(username="rahul", email="rahulrsrahul54@mail.com", password="rahul2006", full_name="Lab Administrator"):
     init_db()
     conn = get_db()
@@ -170,7 +169,6 @@ def create_or_update_admin(username="rahul", email="rahulrsrahul54@mail.com", pa
     print("Admin Account Details:")
     print(f"  Username  : {username}")
     print(f"  Email     : {email}")
-    print(f"  Password  : {password}")
     print(f"  Full Name : {full_name}")
     print(f"  Role      : admin")
     print("-" * 50)

@@ -190,15 +190,18 @@ async function handleSignup(e) {
 }
 
 function handleLogout() {
+    const loginPath = state.user && state.user.role === "admin"
+        ? "/admin-login"
+        : "/student-login";
     state.token = null;
     state.user = null;
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    showAuthView();
-    showToast("You have been signed out.", "info");
+    window.location.assign(loginPath);
 }
 
 function showAuthView() {
+    document.body.classList.remove("dashboard-mode");
     authSection.style.display = "flex";
     studentSection.style.display = "none";
     adminSection.style.display = "none";
@@ -206,6 +209,7 @@ function showAuthView() {
 }
 
 function showDashboardView() {
+    document.body.classList.add("dashboard-mode");
     authSection.style.display = "none";
     navUserSection.style.display = "flex";
     userDisplayName.textContent = state.user.full_name;
