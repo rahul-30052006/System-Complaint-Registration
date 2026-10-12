@@ -24,7 +24,7 @@ adminLoginForm.addEventListener("submit", async (event) => {
 
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        window.location.assign("/");
+        window.location.assign("/dashboard");
     } catch (error) {
         showToast(error.message || "Login failed. Check your credentials.", "error");
     }

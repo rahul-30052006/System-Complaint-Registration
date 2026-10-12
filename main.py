@@ -356,16 +356,21 @@ if os.path.exists(STATIC_DIR):
 
 @app.get("/")
 def serve_index():
-    index_path = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
+    admin_login_path = os.path.join(STATIC_DIR, "admin-login.html")
+    if os.path.exists(admin_login_path):
+        return FileResponse(admin_login_path)
     return {"message": "System Complaint Registration API is running. Static frontend not yet created."}
 
 @app.get("/student-login", include_in_schema=False)
 def serve_student_login():
-    return serve_index()
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    return FileResponse(index_path)
 
 @app.get("/admin-login", include_in_schema=False)
 def serve_admin_login():
-    admin_login_path = os.path.join(STATIC_DIR, "admin-login.html")
-    return FileResponse(admin_login_path)
+    return serve_index()
+
+@app.get("/dashboard", include_in_schema=False)
+def serve_dashboard():
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    return FileResponse(index_path)

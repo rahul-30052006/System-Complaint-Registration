@@ -84,14 +84,15 @@ uvicorn main:app --reload --port 8001
 *(You can also use `--port 8000` or any preferred port)*
 
 ### 4. Open in Your Browser
-Visit the student portal:
+Visit the admin login page:
 ```text
 http://127.0.0.1:8001
 ```
-Student sign-in and registration are available there. Administrators can sign in on the separate page:
+Student sign-in and registration are available on their separate page:
 ```text
-http://127.0.0.1:8001/admin-login
+http://127.0.0.1:8001/student-login
 ```
+After signing in, users are taken to the dashboard at `/dashboard`.
 
 ---
 
@@ -108,6 +109,8 @@ http://127.0.0.1:8001/admin-login
 | `GET` | `/api/admin/stats` | Complaint summary metrics | Admin |
 | `PATCH` | `/api/admin/complaints/{id}` | Update status & add remarks | Admin |
 | `DELETE` | `/api/admin/complaints/{id}` | Remove a complaint ticket | Admin |
-| `GET` | `/` | Serves web application | Public |
+| `GET` | `/` | Admin login page | Public |
+| `GET` | `/student-login` | Student login and registration page | Public |
+| `GET` | `/dashboard` | Student or admin dashboard | Authenticated |
 
-The frontend also provides `/student-login` and `/admin-login` as separate student and administrator sign-in pages.
+The `/admin-login` route is an alias for the administrator login page.
