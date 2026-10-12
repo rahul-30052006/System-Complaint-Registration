@@ -48,8 +48,7 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
     ├── index.html           # Student sign-in, registration, and dashboards
     ├── admin-login.html     # Separate administrator sign-in
     ├── css/styles.css
-    ├── images/lab-background-poster.jpg
-    ├── videos/login-background.mp4
+    ├── images/computer-network-background.jpg
     └── js/
         ├── app.js
         └── admin-login.js
@@ -104,8 +103,7 @@ After signing in, users are taken to the role-appropriate dashboard at `/dashboa
 ## Configuration and deployment
 
 - The SQLite database is stored locally in `complaints.db`; back it up before replacing or removing it.
-- The login pages use a muted looping hardware-repair video. The static computer-lab image remains as its poster and reduced-motion fallback.
-- Login-page background video: `static/videos/login-background.mp4` (provided locally for this project).
+- The login pages use the supplied computer-network background image at `static/images/computer-network-background.jpg`.
 - The bundled bearer-token signing key is for local development. Configure a private secret and restrict CORS origins before deploying this application to a public environment.
 - Use HTTPS and a production ASGI server configuration for deployments; do not use `--reload` outside development.
 
