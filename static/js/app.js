@@ -112,6 +112,11 @@ function initEvents() {
     modalClose.addEventListener("click", closeModal);
     btnCancelModal.addEventListener("click", closeModal);
     btnDeleteComplaint.addEventListener("click", handleDeleteComplaint);
+    adminComplaintsTbody.addEventListener("click", event => {
+        const button = event.target.closest("[data-delete-complaint]");
+        if (!button) return;
+        deleteComplaint(button.dataset.deleteComplaint, false, button);
+    });
 }
 
 // ================= AUTHENTICATION =================
@@ -400,7 +405,7 @@ function renderAdminComplaints(complaints) {
                     <button class="btn btn-outline-primary btn-sm" onclick="openStatusModal(${c.id})">
                         ✏️ Update
                     </button>
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteComplaint(${c.id})" aria-label="Delete complaint #${c.id}">
+                    <button class="btn btn-outline-danger btn-sm" data-delete-complaint="${c.id}" aria-label="Delete complaint #${c.id}">
                         Delete
                     </button>
                 </div>
@@ -452,25 +457,32 @@ async function handleUpdateStatus(e) {
     }
 }
 
-async function deleteComplaint(complaintId, closeStatusModal = false) {
+async function deleteComplaint(complaintId, closeStatusModal = false, triggerButton = null) {
     const id = complaintId;
     if (!confirm(`Are you sure you want to permanently delete Complaint #${id}?`)) {
         return;
     }
 
+    if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = "Deleting...";
+    }
+
     try {
         await apiRequest(`/api/admin/complaints/${id}`, "DELETE");
+        state.adminComplaints = state.adminComplaints.filter(complaint => String(complaint.id) !== String(id));
+        renderAdminComplaints(state.adminComplaints);
         showToast(`Complaint #${id} deleted successfully.`, "info");
         if (closeStatusModal) closeModal();
-        loadAdminData();
+        await loadAdminData();
     } catch (err) {
+        if (triggerButton) {
+            triggerButton.disabled = false;
+            triggerButton.textContent = "Delete";
+        }
         showToast(err.message || "Failed to delete complaint.", "error");
     }
 }
-
-window.deleteComplaint = function(complaintId) {
-    return deleteComplaint(complaintId);
-};
 
 async function handleDeleteComplaint() {
     return deleteComplaint(modalComplaintId.value, true);

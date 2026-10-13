@@ -335,15 +335,17 @@ def update_complaint_status(
 def delete_complaint(complaint_id: int, admin: dict = Depends(require_admin)):
     conn = get_db()
     cursor = conn.cursor()
-    
-    cursor.execute("SELECT id FROM complaints WHERE id = ?", (complaint_id,))
-    if not cursor.fetchone():
+
+    try:
+        cursor.execute("DELETE FROM complaints WHERE id = ?", (complaint_id,))
+        if cursor.rowcount == 0:
+            conn.rollback()
+            raise HTTPException(status_code=404, detail="Complaint not found")
+
+        conn.commit()
+    finally:
         conn.close()
-        raise HTTPException(status_code=404, detail="Complaint not found")
-        
-    cursor.execute("DELETE FROM complaints WHERE id = ?", (complaint_id,))
-    conn.commit()
-    conn.close()
+
     return {"message": f"Complaint #{complaint_id} deleted successfully"}
 
 # ----------------- Serve Frontend Static Files -----------------
