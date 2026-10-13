@@ -396,9 +396,14 @@ function renderAdminComplaints(complaints) {
                 ${formatDate(c.created_at)}
             </td>
             <td>
-                <button class="btn btn-outline-primary btn-sm" onclick="openStatusModal(${c.id})">
-                    ✏️ Update
-                </button>
+                <div class="admin-complaint-actions">
+                    <button class="btn btn-outline-primary btn-sm" onclick="openStatusModal(${c.id})">
+                        ✏️ Update
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteComplaint(${c.id})" aria-label="Delete complaint #${c.id}">
+                        Delete
+                    </button>
+                </div>
             </td>
         </tr>
     `).join("");
@@ -447,8 +452,8 @@ async function handleUpdateStatus(e) {
     }
 }
 
-async function handleDeleteComplaint() {
-    const id = modalComplaintId.value;
+async function deleteComplaint(complaintId, closeStatusModal = false) {
+    const id = complaintId;
     if (!confirm(`Are you sure you want to permanently delete Complaint #${id}?`)) {
         return;
     }
@@ -456,11 +461,19 @@ async function handleDeleteComplaint() {
     try {
         await apiRequest(`/api/admin/complaints/${id}`, "DELETE");
         showToast(`Complaint #${id} deleted successfully.`, "info");
-        closeModal();
+        if (closeStatusModal) closeModal();
         loadAdminData();
     } catch (err) {
         showToast(err.message || "Failed to delete complaint.", "error");
     }
+}
+
+window.deleteComplaint = function(complaintId) {
+    return deleteComplaint(complaintId);
+};
+
+async function handleDeleteComplaint() {
+    return deleteComplaint(modalComplaintId.value, true);
 }
 
 // ================= API & UTILITY HELPERS =================
