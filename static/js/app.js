@@ -1,5 +1,5 @@
 /**
- * LabSys Care - System Complaint Registration Frontend JS
+ * System Complaint Registration Frontend JS
  */
 
 // Application State
@@ -186,7 +186,7 @@ async function handleSignup(e) {
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        showToast("Account created successfully! Welcome to LabSys Care.", "success");
+        showToast("Account created successfully! Welcome.", "success");
         signupForm.reset();
         showDashboardView();
     } catch (err) {

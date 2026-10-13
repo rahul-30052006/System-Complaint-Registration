@@ -1,4 +1,4 @@
-# LabSys Care — System Complaint Registration
+# System Complaint Registration
 
 A responsive complaint-management portal for reporting, tracking, and resolving computer-lab system issues. Students can submit and follow tickets; administrators can triage, update, and resolve them from a separate dashboard.
 
