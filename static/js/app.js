@@ -126,6 +126,8 @@ function initEvents() {
         if (!button) return;
         deleteComplaint(button.dataset.deleteComplaint, false, button);
     });
+
+    toggleCustomLabInput();
 }
 
 // ================= AUTHENTICATION =================
@@ -245,8 +247,11 @@ function showDashboardView() {
 
 function toggleCustomLabInput() {
     const needsCustomName = labNameSelect.value === "Others";
+
     customLabGroup.classList.toggle("is-visible", needsCustomName);
     customLabName.required = needsCustomName;
+    customLabName.disabled = !needsCustomName;
+
     if (needsCustomName) {
         customLabName.focus();
     } else {
