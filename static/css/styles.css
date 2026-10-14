@@ -522,14 +522,14 @@ textarea:focus-visible {
     overflow: hidden;
     border: 1px solid rgba(148, 163, 184, 0.28);
     box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
-    background: #020817;
+    background:
+        linear-gradient(135deg, rgba(7, 18, 33, 0.24), rgba(3, 7, 18, 0.08)),
+        url("/static/images/admin-panel-background.png") center center / cover no-repeat;
+    min-height: 260px;
 }
 
 .admin-panel-hero img {
-    display: block;
-    width: 100%;
-    height: 260px;
-    object-fit: cover;
+    display: none;
 }
 
 .section-nav-pills {
