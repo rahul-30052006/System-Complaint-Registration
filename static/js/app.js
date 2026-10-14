@@ -29,6 +29,9 @@ const authPanels = document.querySelectorAll(".auth-panel");
 const pillButtons = document.querySelectorAll(".pill-btn");
 const studentPanels = document.querySelectorAll(".dashboard-section .view-panel");
 const complaintForm = document.getElementById("complaint-form");
+const labNameSelect = document.getElementById("lab-name");
+const customLabGroup = document.getElementById("custom-lab-group");
+const customLabName = document.getElementById("custom-lab-name");
 const studentComplaintsList = document.getElementById("student-complaints-list");
 const myComplaintsCount = document.getElementById("my-complaints-count");
 const btnRefreshStudent = document.getElementById("btn-refresh-student");
@@ -90,6 +93,12 @@ function initEvents() {
     loginForm.addEventListener("submit", handleLogin);
     signupForm.addEventListener("submit", handleSignup);
     complaintForm.addEventListener("submit", handleCreateComplaint);
+    labNameSelect.addEventListener("change", toggleCustomLabInput);
+    complaintForm.addEventListener("reset", () => {
+        customLabGroup.hidden = true;
+        customLabName.required = false;
+        customLabName.value = "";
+    });
     modalStatusForm.addEventListener("submit", handleUpdateStatus);
 
     // Logout
@@ -234,17 +243,29 @@ function showDashboardView() {
     }
 }
 
+function toggleCustomLabInput() {
+    const needsCustomName = labNameSelect.value === "Others";
+    customLabGroup.hidden = !needsCustomName;
+    customLabName.required = needsCustomName;
+    if (!needsCustomName) customLabName.value = "";
+}
+
 // ================= STUDENT COMPLAINT LOGIC =================
 async function handleCreateComplaint(e) {
     e.preventDefault();
     
-    const lab_name = document.getElementById("lab-name").value;
+    const selectedLab = labNameSelect.value;
+    const lab_name = selectedLab === "Others" ? customLabName.value.trim() : selectedLab;
     const system_no = document.getElementById("system-no").value.trim();
     const issue_type = document.getElementById("issue-type").value;
     const priority = document.getElementById("priority").value;
     const description = document.getElementById("description").value.trim();
 
     if (!lab_name || !system_no || !issue_type || !description) {
+        if (selectedLab === "Others" && !lab_name) {
+            customLabName.reportValidity();
+            return;
+        }
         showToast("Please fill in all required fields.", "error");
         return;
     }
