@@ -1,5 +1,6 @@
 import os
 import logging
+import sqlite3
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
@@ -69,29 +70,42 @@ class ComplaintStatusUpdate(BaseModel):
 def register_student(req: RegisterRequest):
     conn = get_db()
     cursor = conn.cursor()
-    
-    # Check if username or email is already registered
-    cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (req.username.strip(), req.email.strip().lower()))
-    if cursor.fetchone():
-        conn.close()
+
+    username = req.username.strip()
+    full_name = req.full_name.strip()
+    email = req.email.strip().lower()
+    try:
+        cursor.execute("BEGIN IMMEDIATE")
+        cursor.execute("""
+            SELECT id FROM users
+            WHERE username = ? OR lower(trim(email)) = ?
+        """, (username, email))
+        if cursor.fetchone():
+            conn.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Student with this Roll Number/Username or Email already exists"
+            )
+
+        pwd_hash = hash_password(req.password)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("""
+            INSERT INTO users (username, full_name, email, password_hash, role, created_at)
+            VALUES (?, ?, ?, ?, 'student', ?)
+        """, (username, full_name, email, pwd_hash, now))
+
+        new_user_id = cursor.lastrowid
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Student with this Roll Number/Username or Email already exists"
         )
-    
-    pwd_hash = hash_password(req.password)
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    cursor.execute("""
-        INSERT INTO users (username, full_name, email, password_hash, role, created_at)
-        VALUES (?, ?, ?, ?, 'student', ?)
-    """, (req.username.strip(), req.full_name.strip(), req.email.strip().lower(), pwd_hash, now))
-    
-    new_user_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    
-    token = create_access_token({"sub": new_user_id, "username": req.username.strip(), "role": "student"})
+    finally:
+        conn.close()
+
+    token = create_access_token({"sub": new_user_id, "username": username, "role": "student"})
     
     return {
         "message": "Student registered successfully",
@@ -99,9 +113,9 @@ def register_student(req: RegisterRequest):
         "token_type": "bearer",
         "user": {
             "id": new_user_id,
-            "username": req.username.strip(),
-            "full_name": req.full_name.strip(),
-            "email": req.email.strip().lower(),
+            "username": username,
+            "full_name": full_name,
+            "email": email,
             "role": "student"
         }
     }
@@ -112,10 +126,11 @@ def login(req: LoginRequest):
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute(
-        "SELECT id, username, full_name, email, password_hash, role FROM users WHERE username = ? OR email = ?",
-        (identifier, identifier.lower())
-    )
+    cursor.execute("""
+        SELECT id, username, full_name, email, password_hash, role
+        FROM users
+        WHERE username = ? OR lower(trim(email)) = ?
+    """, (identifier, identifier.lower()))
     user = cursor.fetchone()
     conn.close()
     
@@ -146,7 +161,10 @@ def create_or_update_admin(username="rahul", email="rahulrsrahul54@mail.com", pa
     cursor = conn.cursor()
     
     # Check if username or email already exists
-    cursor.execute("SELECT id, username, role FROM users WHERE username = ? OR email = ?", (username, email))
+    cursor.execute("""
+        SELECT id, username, role FROM users
+        WHERE username = ? OR lower(trim(email)) = lower(trim(?))
+    """, (username, email))
     existing = cursor.fetchone()
     
     password_hash = hash_password(password)
