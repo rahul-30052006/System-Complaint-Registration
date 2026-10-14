@@ -34,6 +34,7 @@ def init_db():
         student_name TEXT NOT NULL,
         student_roll TEXT NOT NULL,
         lab_name TEXT NOT NULL,
+        lab_location TEXT NOT NULL DEFAULT '',
         system_no TEXT NOT NULL,
         issue_type TEXT NOT NULL,
         priority TEXT NOT NULL DEFAULT 'Medium',
@@ -45,6 +46,14 @@ def init_db():
         FOREIGN KEY (student_id) REFERENCES users (id)
     )
     """)
+
+    complaint_columns = {
+        column["name"] for column in cursor.execute("PRAGMA table_info(complaints)")
+    }
+    if "lab_location" not in complaint_columns:
+        cursor.execute(
+            "ALTER TABLE complaints ADD COLUMN lab_location TEXT NOT NULL DEFAULT ''"
+        )
     
     conn.commit()
     conn.close()

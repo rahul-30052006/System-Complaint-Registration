@@ -49,6 +49,7 @@ class LoginRequest(BaseModel):
 
 class ComplaintCreate(BaseModel):
     lab_name: str = Field(..., min_length=1, max_length=100)
+    lab_location: str = Field(..., min_length=1, max_length=100)
     system_no: str = Field(..., min_length=1, max_length=50)
     issue_type: str = Field(..., min_length=1, max_length=100)
     priority: str = Field(default="Medium", pattern="^(Low|Medium|High|Critical)$")
@@ -189,15 +190,16 @@ def submit_complaint(complaint: ComplaintCreate, user: dict = Depends(require_st
     
     cursor.execute("""
         INSERT INTO complaints (
-            student_id, student_name, student_roll, lab_name, 
-            system_no, issue_type, priority, description, 
+            student_id, student_name, student_roll, lab_name, lab_location,
+            system_no, issue_type, priority, description,
             status, admin_remarks, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', ?, ?)
     """, (
         user["id"],
         user["full_name"],
         user["username"],
         complaint.lab_name.strip(),
+        complaint.lab_location.strip(),
         complaint.system_no.strip(),
         complaint.issue_type.strip(),
         complaint.priority,
@@ -253,8 +255,8 @@ def get_all_complaints(
         
     if search:
         search_term = f"%{search.strip()}%"
-        query += " AND (student_name LIKE ? OR student_roll LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ?)"
-        params.extend([search_term, search_term, search_term, search_term, search_term])
+        query += " AND (student_name LIKE ? OR student_roll LIKE ? OR lab_location LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ?)"
+        params.extend([search_term, search_term, search_term, search_term, search_term, search_term])
         
     query += " ORDER BY id DESC"
     

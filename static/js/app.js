@@ -266,12 +266,13 @@ async function handleCreateComplaint(e) {
     
     const selectedLab = labNameSelect.value;
     const lab_name = selectedLab === "Others" ? customLabName.value.trim() : selectedLab;
+    const lab_location = document.getElementById("lab-location").value.trim();
     const system_no = document.getElementById("system-no").value.trim();
     const issue_type = document.getElementById("issue-type").value;
     const priority = document.getElementById("priority").value;
     const description = document.getElementById("description").value.trim();
 
-    if (!lab_name || !system_no || !issue_type || !description) {
+    if (!lab_name || !lab_location || !system_no || !issue_type || !description) {
         if (selectedLab === "Others" && !lab_name) {
             customLabName.reportValidity();
             return;
@@ -283,6 +284,7 @@ async function handleCreateComplaint(e) {
     try {
         await apiRequest("/api/complaints", "POST", {
             lab_name,
+            lab_location,
             system_no,
             issue_type,
             priority,
@@ -328,6 +330,7 @@ function renderStudentComplaints(complaints) {
                 <div>
                     <span class="complaint-system-badge">${escapeHtml(c.system_no)}</span>
                     <div class="complaint-lab-name">${escapeHtml(c.lab_name)}</div>
+                    ${c.lab_location ? `<div class="complaint-lab-name">${escapeHtml(c.lab_location)}</div>` : ''}
                 </div>
                 <div class="tags-group">
                     <span class="priority-badge priority-${c.priority.toLowerCase()}">${c.priority}</span>
@@ -416,6 +419,7 @@ function renderAdminComplaints(complaints) {
             <td>
                 <span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(c.system_no)}</span><br>
                 <small style="color: #64748b;">${escapeHtml(c.lab_name)}</small>
+                ${c.lab_location ? `<br><small style="color: #64748b;">${escapeHtml(c.lab_location)}</small>` : ''}
             </td>
             <td>
                 <strong>${escapeHtml(c.issue_type)}</strong>
@@ -457,7 +461,7 @@ window.openStatusModal = function(complaintId) {
 
     modalSummary.innerHTML = `
         <div><strong>Student:</strong> ${escapeHtml(complaint.student_name)} (${escapeHtml(complaint.student_roll)})</div>
-        <div><strong>Location:</strong> ${escapeHtml(complaint.lab_name)} - ${escapeHtml(complaint.system_no)}</div>
+        <div><strong>Location:</strong> ${escapeHtml(complaint.lab_name)} - ${escapeHtml(complaint.lab_location || "Not specified")} - ${escapeHtml(complaint.system_no)}</div>
         <div><strong>Issue:</strong> ${escapeHtml(complaint.issue_type)} - <em>${escapeHtml(complaint.description)}</em></div>
     `;
 
