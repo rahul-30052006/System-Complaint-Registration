@@ -375,9 +375,9 @@ function renderAdminComplaints(complaints) {
         return;
     }
 
-    adminComplaintsTbody.innerHTML = complaints.map(c => `
+    adminComplaintsTbody.innerHTML = complaints.map((c, index) => `
         <tr>
-            <td><strong>#${c.id}</strong></td>
+            <td><strong>${index + 1}</strong></td>
             <td>
                 <strong>${escapeHtml(c.student_name)}</strong><br>
                 <small style="color: #64748b;">Roll: ${escapeHtml(c.student_roll)}</small>
