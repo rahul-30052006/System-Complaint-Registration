@@ -33,6 +33,7 @@ def init_db():
         student_id INTEGER NOT NULL,
         student_name TEXT NOT NULL,
         student_roll TEXT NOT NULL,
+        department TEXT NOT NULL DEFAULT '',
         lab_name TEXT NOT NULL,
         lab_location TEXT NOT NULL DEFAULT '',
         system_no TEXT NOT NULL,
@@ -40,7 +41,10 @@ def init_db():
         priority TEXT NOT NULL DEFAULT 'Medium',
         description TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'Pending',
+        assigned_technician TEXT NOT NULL DEFAULT '',
+        repair_action TEXT NOT NULL DEFAULT '',
         admin_remarks TEXT DEFAULT '',
+        rectified_date TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         FOREIGN KEY (student_id) REFERENCES users (id)
@@ -50,10 +54,27 @@ def init_db():
     complaint_columns = {
         column["name"] for column in cursor.execute("PRAGMA table_info(complaints)")
     }
-    if "lab_location" not in complaint_columns:
-        cursor.execute(
-            "ALTER TABLE complaints ADD COLUMN lab_location TEXT NOT NULL DEFAULT ''"
-        )
+    migration_columns = {
+        "lab_location": "TEXT NOT NULL DEFAULT ''",
+        "department": "TEXT NOT NULL DEFAULT ''",
+        "assigned_technician": "TEXT NOT NULL DEFAULT ''",
+        "repair_action": "TEXT NOT NULL DEFAULT ''",
+        "rectified_date": "TEXT",
+    }
+    for column_name, column_definition in migration_columns.items():
+        if column_name not in complaint_columns:
+            cursor.execute(
+                f"ALTER TABLE complaints ADD COLUMN {column_name} {column_definition}"
+            )
+
+    cursor.execute("""
+        UPDATE complaints
+        SET rectified_date = substr(updated_at, 1, 10)
+        WHERE status = 'Resolved'
+          AND rectified_date IS NULL
+          AND updated_at IS NOT NULL
+          AND updated_at != ''
+    """)
     
     conn.commit()
     conn.close()

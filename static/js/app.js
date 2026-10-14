@@ -36,6 +36,10 @@ const customLabName = document.getElementById("custom-lab-name");
 const studentComplaintsList = document.getElementById("student-complaints-list");
 const myComplaintsCount = document.getElementById("my-complaints-count");
 const btnRefreshStudent = document.getElementById("btn-refresh-student");
+const complaintDateInput = document.getElementById("complaint-date");
+const departmentInput = document.getElementById("department");
+const complaintStudentNameInput = document.getElementById("complaint-student-name");
+const complaintStudentRollInput = document.getElementById("complaint-student-roll");
 
 // Admin Elements
 const statTotal = document.getElementById("stat-total");
@@ -57,6 +61,8 @@ const modalTitle = document.getElementById("modal-title");
 const modalSummary = document.getElementById("modal-summary");
 const modalComplaintId = document.getElementById("modal-complaint-id");
 const modalStatusSelect = document.getElementById("modal-status-select");
+const modalAssignedTechnician = document.getElementById("modal-assigned-technician");
+const modalRepairAction = document.getElementById("modal-repair-action");
 const modalAdminRemarks = document.getElementById("modal-admin-remarks");
 const btnDeleteComplaint = document.getElementById("btn-delete-complaint");
 
@@ -238,6 +244,7 @@ function showDashboardView() {
         adminSection.style.display = "block";
         loadAdminData();
     } else {
+        populateComplaintStudentFields();
         userRoleBadge.textContent = "Student";
         userRoleBadge.className = "badge badge-student";
         adminLoginLink.style.display = "none";
@@ -245,6 +252,21 @@ function showDashboardView() {
         studentSection.style.display = "block";
         loadStudentComplaints();
     }
+}
+
+function populateComplaintStudentFields() {
+    const now = new Date();
+    const date = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10);
+    const studentName = state.user.full_name || state.user.username;
+
+    complaintDateInput.value = date;
+    complaintDateInput.defaultValue = date;
+    complaintStudentNameInput.value = studentName;
+    complaintStudentNameInput.defaultValue = studentName;
+    complaintStudentRollInput.value = state.user.username;
+    complaintStudentRollInput.defaultValue = state.user.username;
 }
 
 function toggleCustomLabInput() {
@@ -267,13 +289,14 @@ async function handleCreateComplaint(e) {
     
     const selectedLab = labNameSelect.value;
     const lab_name = selectedLab === "Others" ? customLabName.value.trim() : selectedLab;
+    const department = departmentInput.value.trim();
     const lab_location = document.getElementById("lab-location").value.trim();
     const system_no = document.getElementById("system-no").value.trim();
     const issue_type = document.getElementById("issue-type").value;
     const priority = document.getElementById("priority").value;
     const description = document.getElementById("description").value.trim();
 
-    if (!lab_name || !lab_location || !system_no || !issue_type || !description) {
+    if (!department || !lab_name || !lab_location || !system_no || !issue_type || !description) {
         if (selectedLab === "Others" && !lab_name) {
             customLabName.reportValidity();
             return;
@@ -284,6 +307,7 @@ async function handleCreateComplaint(e) {
 
     try {
         await apiRequest("/api/complaints", "POST", {
+            department,
             lab_name,
             lab_location,
             system_no,
@@ -340,13 +364,19 @@ function renderStudentComplaints(complaints) {
             </div>
 
             <div>
+                <strong style="font-size: 0.825rem; color: #475569;">Department: ${escapeHtml(c.department || "Not specified")}</strong>
+            </div>
+
+            <div>
                 <strong style="font-size: 0.825rem; color: #475569;">Issue: ${escapeHtml(c.issue_type)}</strong>
                 <div class="complaint-desc">${escapeHtml(c.description)}</div>
             </div>
 
+            ${c.assigned_technician ? `<div class="complaint-remarks"><strong>Assigned Technician:</strong> ${escapeHtml(c.assigned_technician)}</div>` : ''}
+            ${c.repair_action ? `<div class="complaint-remarks"><strong>Repair Action:</strong> ${escapeHtml(c.repair_action)}</div>` : ''}
             ${c.admin_remarks ? `
                 <div class="complaint-remarks">
-                    <strong>Admin Remark:</strong> ${escapeHtml(c.admin_remarks)}
+                    <strong>Technician Remarks:</strong> ${escapeHtml(c.admin_remarks)}
                 </div>
             ` : ''}
 
@@ -401,7 +431,7 @@ function renderAdminComplaints(complaints) {
     if (!complaints.length) {
         adminComplaintsTbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-state">
+                <td colspan="14" class="empty-state">
                     <div class="empty-state-icon">🔍</div>
                     <p>No complaints match your current filter criteria.</p>
                 </td>
@@ -413,20 +443,22 @@ function renderAdminComplaints(complaints) {
     adminComplaintsTbody.innerHTML = complaints.map((c, index) => `
         <tr>
             <td><strong>${index + 1}</strong></td>
+            <td style="white-space: nowrap;">${formatDate(c.created_at)}</td>
+            <td>${escapeHtml(c.department || "Not specified")}</td>
             <td>
-                <strong>${escapeHtml(c.student_name)}</strong><br>
-                <small style="color: #64748b;">Roll: ${escapeHtml(c.student_roll)}</small>
+                <strong>${escapeHtml(c.student_name)}</strong>
             </td>
+            <td>${escapeHtml(c.student_roll)}</td>
             <td>
-                <span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(c.system_no)}</span><br>
                 <small style="color: #64748b;">${escapeHtml(c.lab_name)}</small>
                 ${c.lab_location ? `<br><small style="color: #64748b;">${escapeHtml(c.lab_location)}</small>` : ''}
             </td>
+            <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(c.system_no)}</span></td>
             <td>
                 <strong>${escapeHtml(c.issue_type)}</strong>
                 <p style="font-size: 0.8rem; color: #334155; margin-top: 0.25rem;">${escapeHtml(c.description)}</p>
-                ${c.admin_remarks ? `<small style="color:#059669; font-weight:600;">Remarks: ${escapeHtml(c.admin_remarks)}</small>` : ''}
             </td>
+            <td>${escapeHtml(c.assigned_technician || "Not assigned")}</td>
             <td>
                 <span class="priority-badge priority-${c.priority.toLowerCase()}">${c.priority}</span>
             </td>
@@ -434,7 +466,12 @@ function renderAdminComplaints(complaints) {
                 <span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">${c.status}</span>
             </td>
             <td style="white-space: nowrap; font-size: 0.8rem; color: #64748b;">
-                ${formatDate(c.created_at)}
+                ${c.rectified_date ? escapeHtml(c.rectified_date) : "Not rectified"}
+            </td>
+            <td>
+                ${c.repair_action ? `<div><strong>Action:</strong> ${escapeHtml(c.repair_action)}</div>` : ''}
+                ${c.admin_remarks ? `<div><strong>Remarks:</strong> ${escapeHtml(c.admin_remarks)}</div>` : ''}
+                ${!c.repair_action && !c.admin_remarks ? "No repair notes" : ""}
             </td>
             <td>
                 <div class="admin-complaint-actions">
@@ -458,10 +495,12 @@ window.openStatusModal = function(complaintId) {
     modalComplaintId.value = complaint.id;
     modalTitle.textContent = `Update Ticket #${complaint.id} (${complaint.system_no})`;
     modalStatusSelect.value = complaint.status;
+    modalAssignedTechnician.value = complaint.assigned_technician || "";
+    modalRepairAction.value = complaint.repair_action || "";
     modalAdminRemarks.value = complaint.admin_remarks || "";
 
     modalSummary.innerHTML = `
-        <div><strong>Student:</strong> ${escapeHtml(complaint.student_name)} (${escapeHtml(complaint.student_roll)})</div>
+        <div><strong>Student:</strong> ${escapeHtml(complaint.student_name)} (${escapeHtml(complaint.student_roll)}) - ${escapeHtml(complaint.department || "Department not provided")}</div>
         <div><strong>Location:</strong> ${escapeHtml(complaint.lab_name)} - ${escapeHtml(complaint.lab_location || "Not specified")} - ${escapeHtml(complaint.system_no)}</div>
         <div><strong>Issue:</strong> ${escapeHtml(complaint.issue_type)} - <em>${escapeHtml(complaint.description)}</em></div>
     `;
@@ -482,6 +521,8 @@ async function handleUpdateStatus(e) {
     try {
         const result = await apiRequest(`/api/admin/complaints/${id}`, "PATCH", {
             status,
+            assigned_technician: modalAssignedTechnician.value.trim(),
+            repair_action: modalRepairAction.value.trim(),
             admin_remarks
         });
 

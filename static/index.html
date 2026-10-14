@@ -125,7 +125,27 @@
                     <form id="complaint-form">
                         <div class="form-row">
                             <div class="form-group col">
-                                <label for="lab-name">Lab Name *</label>
+                                <label for="complaint-date">Complaint Date</label>
+                                <input type="date" id="complaint-date" readonly>
+                            </div>
+                            <div class="form-group col">
+                                <label for="department">Department *</label>
+                                <input type="text" id="department" maxlength="100" placeholder="Enter your department" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="complaint-student-name">Student Name</label>
+                                <input type="text" id="complaint-student-name" readonly>
+                            </div>
+                            <div class="form-group col">
+                                <label for="complaint-student-roll">Student Roll Number</label>
+                                <input type="text" id="complaint-student-roll" readonly>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col">
+                                <label for="lab-name">Location / Lab Name *</label>
                                 <select id="lab-name" required>
                                     <option value="" disabled selected>-- Select Laboratory --</option>
                                     <option value="UG Lab">UG Lab</option>
@@ -141,9 +161,9 @@
                                 </div>
                             </div>
                             <div class="form-group col">
-                                <label for="system-no">System No *</label>
+                                <label for="system-no">System Number / Equipment Name *</label>
                                 <input type="text" id="system-no" placeholder="e.g. PC-07, SYS-14, ROW-2-PC3" required>
-                                <label for="lab-location">Lab Location *</label>
+                                <label for="lab-location">Building / Room *</label>
                                 <input type="text" id="lab-location" maxlength="100" placeholder="e.g. Block A, Room 204" required>
                             </div>
                         </div>
@@ -164,7 +184,7 @@
                                 </select>
                             </div>
                             <div class="form-group col">
-                                <label for="priority">Urgency / Priority *</label>
+                                <label for="priority">Priority *</label>
                                 <select id="priority" required>
                                     <option value="Low">Low - Minor problem</option>
                                     <option value="Medium" selected>Medium - Normal issue</option>
@@ -175,7 +195,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="description">Detailed Description of the Issue *</label>
+                            <label for="description">Complaint Details *</label>
                             <textarea id="description" rows="4" placeholder="Please describe exactly what happens (e.g. The PC beeps repeatedly on power on and doesn't boot into Windows, or the mouse left-click button is broken)..." required minlength="5"></textarea>
                         </div>
 
@@ -286,13 +306,19 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>SL NO</th>
-                                <th>Student Details</th>
-                                <th>Lab & System</th>
-                                <th>Issue Type & Description</th>
+                                <th>Serial Number</th>
+                                <th>Complaint Date</th>
+                                <th>Department</th>
+                                <th>Student Name</th>
+                                <th>Student Roll Number</th>
+                                <th>Location / Lab</th>
+                                <th>System Number / Equipment</th>
+                                <th>Complaint Details</th>
+                                <th>Assigned Technician</th>
                                 <th>Priority</th>
                                 <th>Status</th>
-                                <th>Date Filed</th>
+                                <th>Rectified Date</th>
+                                <th>Repair Remarks</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -331,8 +357,18 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="modal-admin-remarks">Admin Remarks / Action Taken</label>
-                        <textarea id="modal-admin-remarks" rows="3" placeholder="e.g. Replaced faulty RAM stick; PC tested and working normally."></textarea>
+                        <label for="modal-assigned-technician">Assigned Technician / Service Member</label>
+                        <input type="text" id="modal-assigned-technician" maxlength="100" placeholder="Enter technician or service member">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-repair-action">Repair Action Taken</label>
+                        <textarea id="modal-repair-action" rows="3" maxlength="2000" placeholder="Describe the repair or rectification performed"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-admin-remarks">Technician Remarks</label>
+                        <textarea id="modal-admin-remarks" rows="3" maxlength="1000" placeholder="Add verification notes or other remarks"></textarea>
                     </div>
                 </div>
 
@@ -348,6 +384,6 @@
     </div>
 
     <!-- App Scripts -->
-    <script src="/static/js/app.js?v=11"></script>
+    <script src="/static/js/app.js?v=12"></script>
 </body>
 </html>

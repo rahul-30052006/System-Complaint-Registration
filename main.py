@@ -53,6 +53,7 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1)
 
 class ComplaintCreate(BaseModel):
+    department: str = Field(default="", max_length=100)
     lab_name: str = Field(..., min_length=1, max_length=100)
     lab_location: str = Field(..., min_length=1, max_length=100)
     system_no: str = Field(..., min_length=1, max_length=50)
@@ -62,7 +63,9 @@ class ComplaintCreate(BaseModel):
 
 class ComplaintStatusUpdate(BaseModel):
     status: str = Field(..., pattern="^(Pending|In Progress|Resolved|Rejected)$")
-    admin_remarks: Optional[str] = Field(default="", max_length=1000)
+    assigned_technician: Optional[str] = Field(default=None, max_length=100)
+    repair_action: Optional[str] = Field(default=None, max_length=2000)
+    admin_remarks: Optional[str] = Field(default=None, max_length=1000)
 
 # ----------------- Auth Routes -----------------
 
@@ -212,14 +215,16 @@ def submit_complaint(complaint: ComplaintCreate, user: dict = Depends(require_st
     
     cursor.execute("""
         INSERT INTO complaints (
-            student_id, student_name, student_roll, lab_name, lab_location,
-            system_no, issue_type, priority, description,
-            status, admin_remarks, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', ?, ?)
+            student_id, student_name, student_roll, department, lab_name,
+            lab_location, system_no, issue_type, priority, description,
+            status, assigned_technician, repair_action, admin_remarks,
+            rectified_date, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', '', '', NULL, ?, ?)
     """, (
         user["id"],
         user["full_name"],
         user["username"],
+        complaint.department.strip(),
         complaint.lab_name.strip(),
         complaint.lab_location.strip(),
         complaint.system_no.strip(),
@@ -277,8 +282,8 @@ def get_all_complaints(
         
     if search:
         search_term = f"%{search.strip()}%"
-        query += " AND (student_name LIKE ? OR student_roll LIKE ? OR lab_location LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ?)"
-        params.extend([search_term, search_term, search_term, search_term, search_term, search_term])
+        query += " AND (student_name LIKE ? OR student_roll LIKE ? OR department LIKE ? OR lab_name LIKE ? OR lab_location LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ? OR assigned_technician LIKE ? OR repair_action LIKE ? OR admin_remarks LIKE ?)"
+        params.extend([search_term] * 11)
         
     query += " ORDER BY id DESC"
     
@@ -352,12 +357,43 @@ def update_complaint_status(
             and existing_complaint["status"] != "Resolved"
         )
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if update_data.status == "Resolved":
+            rectified_date = existing_complaint["rectified_date"]
+            if existing_complaint["status"] != "Resolved" or not rectified_date:
+                rectified_date = now[:10]
+        else:
+            rectified_date = None
+
+        assigned_technician = (
+            update_data.assigned_technician
+            if update_data.assigned_technician is not None
+            else existing_complaint["assigned_technician"]
+        )
+        repair_action = (
+            update_data.repair_action
+            if update_data.repair_action is not None
+            else existing_complaint["repair_action"]
+        )
+        admin_remarks = (
+            update_data.admin_remarks
+            if update_data.admin_remarks is not None
+            else existing_complaint["admin_remarks"]
+        )
 
         cursor.execute("""
             UPDATE complaints
-            SET status = ?, admin_remarks = ?, updated_at = ?
+            SET status = ?, assigned_technician = ?, repair_action = ?,
+                admin_remarks = ?, rectified_date = ?, updated_at = ?
             WHERE id = ?
-        """, (update_data.status, update_data.admin_remarks.strip(), now, complaint_id))
+        """, (
+            update_data.status,
+            (assigned_technician or "").strip(),
+            (repair_action or "").strip(),
+            (admin_remarks or "").strip(),
+            rectified_date,
+            now,
+            complaint_id,
+        ))
 
         conn.commit()
         cursor.execute("SELECT * FROM complaints WHERE id = ?", (complaint_id,))

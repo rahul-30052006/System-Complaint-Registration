@@ -787,9 +787,12 @@ textarea:focus-visible {
     background: #ffffff;
     width: 100%;
     max-width: 520px;
+    max-height: calc(100vh - 2rem);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
@@ -815,6 +818,7 @@ textarea:focus-visible {
 
 .modal-body {
     padding: 1.5rem;
+    overflow-y: auto;
 }
 
 .modal-info-summary {

@@ -25,6 +25,8 @@ def send_resolution_email(complaint: Mapping[str, object]) -> None:
         str(complaint.get("system_no", "")),
     )))
     admin_remarks = str(complaint.get("admin_remarks", "")).strip()
+    assigned_technician = str(complaint.get("assigned_technician", "")).strip()
+    repair_action = str(complaint.get("repair_action", "")).strip()
 
     message = EmailMessage()
     message["Subject"] = f"System complaint #{complaint['id']} resolved"
@@ -37,8 +39,10 @@ def send_resolution_email(complaint: Mapping[str, object]) -> None:
         f"System location: {system_location}\n"
         f"Complaint details: {complaint.get('issue_type', '')} - "
         f"{complaint.get('description', '')}\n"
+        f"Assigned technician: {assigned_technician or 'Not specified'}\n"
+        f"Repair action taken: {repair_action or 'Not specified'}\n"
         f"Resolution status: {complaint.get('status', 'Resolved')}\n"
-        f"Admin remarks: {admin_remarks or 'No additional remarks provided.'}\n"
+        f"Technician remarks: {admin_remarks or 'No additional remarks provided.'}\n"
     )
 
     context = ssl.create_default_context()
