@@ -18,6 +18,7 @@ const navUserSection = document.getElementById("nav-user-section");
 const userDisplayName = document.getElementById("user-display-name");
 const userRoleBadge = document.getElementById("user-role-badge");
 const btnLogout = document.getElementById("btn-logout");
+const adminLoginLink = document.getElementById("admin-login-link");
 
 // Auth Elements
 const loginForm = document.getElementById("login-form");
@@ -232,12 +233,14 @@ function showDashboardView() {
     if (state.user.role === "admin") {
         userRoleBadge.textContent = "Admin";
         userRoleBadge.className = "badge badge-admin";
+        adminLoginLink.style.display = "inline-flex";
         studentSection.style.display = "none";
         adminSection.style.display = "block";
         loadAdminData();
     } else {
         userRoleBadge.textContent = "Student";
         userRoleBadge.className = "badge badge-student";
+        adminLoginLink.style.display = "none";
         adminSection.style.display = "none";
         studentSection.style.display = "block";
         loadStudentComplaints();
