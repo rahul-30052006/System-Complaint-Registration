@@ -43,6 +43,22 @@ class AuthenticationFlowTests(unittest.TestCase):
         self.assertNotEqual(stored["password_hash"], "StrongTestPassword!")
         self.assertTrue(verify_password("StrongTestPassword!", stored["password_hash"]))
 
+    def test_signup_without_full_name_uses_username_and_can_log_in(self):
+        result = main.register_student(RegisterRequest(
+            username="username-only",
+            email="username-only@example.com",
+            password="StrongTestPassword!",
+        ))
+
+        self.assertEqual(result["user"]["full_name"], "username-only")
+        for login_id in ("username-only", "username-only@example.com"):
+            with self.subTest(login_id=login_id):
+                login_result = main.login(LoginRequest(
+                    login_id=login_id,
+                    password="StrongTestPassword!",
+                ))
+                self.assertEqual(login_result["user"]["id"], result["user"]["id"])
+
     def test_login_with_username(self):
         self.register_student()
 

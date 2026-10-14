@@ -180,14 +180,12 @@ async function handleLogin(e) {
 
 async function handleSignup(e) {
     e.preventDefault();
-    const full_name = document.getElementById("signup-fullname").value.trim();
     const username = document.getElementById("signup-username").value.trim();
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
 
     try {
         const data = await apiRequest("/api/auth/register", "POST", {
-            full_name,
             username,
             email,
             password

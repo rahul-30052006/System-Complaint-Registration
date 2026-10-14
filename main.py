@@ -44,7 +44,7 @@ app.add_middleware(
 
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="Roll Number or Username")
-    full_name: str = Field(..., min_length=2, max_length=100)
+    full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     email: str = Field(..., max_length=100)
     password: str = Field(..., min_length=4, max_length=100)
 
@@ -72,7 +72,7 @@ def register_student(req: RegisterRequest):
     cursor = conn.cursor()
 
     username = req.username.strip()
-    full_name = req.full_name.strip()
+    full_name = (req.full_name or "").strip() or username
     email = req.email.strip().lower()
     try:
         cursor.execute("BEGIN IMMEDIATE")
