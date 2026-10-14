@@ -95,8 +95,9 @@ function initEvents() {
     complaintForm.addEventListener("submit", handleCreateComplaint);
     labNameSelect.addEventListener("change", toggleCustomLabInput);
     complaintForm.addEventListener("reset", () => {
-        customLabGroup.classList.remove("is-visible");
+        customLabGroup.style.display = "none";
         customLabName.required = false;
+        customLabName.disabled = true;
         customLabName.value = "";
     });
     modalStatusForm.addEventListener("submit", handleUpdateStatus);
@@ -248,7 +249,7 @@ function showDashboardView() {
 function toggleCustomLabInput() {
     const needsCustomName = labNameSelect.value === "Others";
 
-    customLabGroup.classList.toggle("is-visible", needsCustomName);
+    customLabGroup.style.display = needsCustomName ? "block" : "none";
     customLabName.required = needsCustomName;
     customLabName.disabled = !needsCustomName;
 

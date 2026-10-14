@@ -448,14 +448,6 @@ textarea:focus-visible {
     margin-bottom: 1.15rem;
 }
 
-.custom-lab-group {
-    display: none;
-}
-
-.custom-lab-group.is-visible {
-    display: block;
-}
-
 .form-group label {
     display: block;
     margin-bottom: 0.4rem;
