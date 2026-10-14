@@ -95,7 +95,7 @@ function initEvents() {
     complaintForm.addEventListener("submit", handleCreateComplaint);
     labNameSelect.addEventListener("change", toggleCustomLabInput);
     complaintForm.addEventListener("reset", () => {
-        customLabGroup.hidden = true;
+        customLabGroup.classList.remove("is-visible");
         customLabName.required = false;
         customLabName.value = "";
     });
@@ -245,9 +245,13 @@ function showDashboardView() {
 
 function toggleCustomLabInput() {
     const needsCustomName = labNameSelect.value === "Others";
-    customLabGroup.hidden = !needsCustomName;
+    customLabGroup.classList.toggle("is-visible", needsCustomName);
     customLabName.required = needsCustomName;
-    if (!needsCustomName) customLabName.value = "";
+    if (needsCustomName) {
+        customLabName.focus();
+    } else {
+        customLabName.value = "";
+    }
 }
 
 // ================= STUDENT COMPLAINT LOGIC =================
