@@ -479,12 +479,16 @@ async function handleUpdateStatus(e) {
     const admin_remarks = modalAdminRemarks.value.trim();
 
     try {
-        await apiRequest(`/api/admin/complaints/${id}`, "PATCH", {
+        const result = await apiRequest(`/api/admin/complaints/${id}`, "PATCH", {
             status,
             admin_remarks
         });
 
-        showToast(`Complaint #${id} updated to ${status}!`, "success");
+        if (result.email_notification === "failed") {
+            showToast(`Complaint #${id} was updated, but the resolution email failed. Check the server configuration and logs.`, "error");
+        } else {
+            showToast(`Complaint #${id} updated to ${status}!`, "success");
+        }
         closeModal();
         loadAdminData();
     } catch (err) {

@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
@@ -8,6 +9,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from database import get_db, init_db
+from email_service import send_resolution_email
 from auth import (
     hash_password,
     verify_password,
@@ -16,6 +18,8 @@ from auth import (
     require_admin,
     require_student
 )
+
+logger = logging.getLogger(__name__)
 
 # Initialize Database on app load
 init_db()
@@ -312,26 +316,55 @@ def update_complaint_status(
 ):
     conn = get_db()
     cursor = conn.cursor()
-    
-    cursor.execute("SELECT id FROM complaints WHERE id = ?", (complaint_id,))
-    if not cursor.fetchone():
+
+    try:
+        cursor.execute("BEGIN IMMEDIATE")
+        cursor.execute("""
+            SELECT c.*, u.email AS student_email
+            FROM complaints c
+            JOIN users u ON u.id = c.student_id
+            WHERE c.id = ? AND c.student_id = u.id
+        """, (complaint_id,))
+        existing_complaint = cursor.fetchone()
+        if not existing_complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+
+        should_notify = (
+            update_data.status == "Resolved"
+            and existing_complaint["status"] != "Resolved"
+        )
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        cursor.execute("""
+            UPDATE complaints
+            SET status = ?, admin_remarks = ?, updated_at = ?
+            WHERE id = ?
+        """, (update_data.status, update_data.admin_remarks.strip(), now, complaint_id))
+
+        conn.commit()
+        cursor.execute("SELECT * FROM complaints WHERE id = ?", (complaint_id,))
+        updated_complaint = dict(cursor.fetchone())
+        student_email = existing_complaint["student_email"]
+    finally:
         conn.close()
-        raise HTTPException(status_code=404, detail="Complaint not found")
-        
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    cursor.execute("""
-        UPDATE complaints 
-        SET status = ?, admin_remarks = ?, updated_at = ?
-        WHERE id = ?
-    """, (update_data.status, update_data.admin_remarks.strip(), now, complaint_id))
-    
-    conn.commit()
-    cursor.execute("SELECT * FROM complaints WHERE id = ?", (complaint_id,))
-    updated_complaint = dict(cursor.fetchone())
-    conn.close()
-    
-    return {"message": "Complaint updated successfully", "complaint": updated_complaint}
+
+    email_notification = "not_triggered"
+    if should_notify:
+        try:
+            send_resolution_email({
+                **updated_complaint,
+                "student_email": student_email
+            })
+            email_notification = "sent"
+        except Exception:
+            logger.exception("Resolution email failed for complaint #%s", complaint_id)
+            email_notification = "failed"
+
+    return {
+        "message": "Complaint updated successfully",
+        "complaint": updated_complaint,
+        "email_notification": email_notification
+    }
 
 @app.delete("/api/admin/complaints/{complaint_id}")
 def delete_complaint(complaint_id: int, admin: dict = Depends(require_admin)):
