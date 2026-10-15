@@ -2,7 +2,7 @@ import os
 import logging
 import sqlite3
 import smtplib
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,6 +54,7 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1)
 
 class ComplaintCreate(BaseModel):
+    complaint_date: date
     department: str = Field(default="", max_length=100)
     lab_name: str = Field(..., min_length=1, max_length=100)
     lab_location: str = Field(..., min_length=1, max_length=100)
@@ -249,15 +250,16 @@ def submit_complaint(complaint: ComplaintCreate, user: dict = Depends(require_st
     
     cursor.execute("""
         INSERT INTO complaints (
-            student_id, student_name, student_roll, department, lab_name,
+            student_id, student_name, student_roll, complaint_date, department, lab_name,
             lab_location, system_no, issue_type, priority, description,
             status, assigned_technician, repair_action, admin_remarks,
             rectified_date, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', '', '', NULL, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', '', '', NULL, ?, ?)
     """, (
         user["id"],
         user["full_name"],
         user["username"],
+        complaint.complaint_date.isoformat(),
         complaint.department.strip(),
         complaint.lab_name.strip(),
         complaint.lab_location.strip(),

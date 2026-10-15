@@ -33,6 +33,7 @@ def init_db():
         student_id INTEGER NOT NULL,
         student_name TEXT NOT NULL,
         student_roll TEXT NOT NULL,
+        complaint_date TEXT NOT NULL DEFAULT '',
         department TEXT NOT NULL DEFAULT '',
         lab_name TEXT NOT NULL,
         lab_location TEXT NOT NULL DEFAULT '',
@@ -55,6 +56,7 @@ def init_db():
         column["name"] for column in cursor.execute("PRAGMA table_info(complaints)")
     }
     migration_columns = {
+        "complaint_date": "TEXT NOT NULL DEFAULT ''",
         "lab_location": "TEXT NOT NULL DEFAULT ''",
         "department": "TEXT NOT NULL DEFAULT ''",
         "assigned_technician": "TEXT NOT NULL DEFAULT ''",
@@ -66,6 +68,14 @@ def init_db():
             cursor.execute(
                 f"ALTER TABLE complaints ADD COLUMN {column_name} {column_definition}"
             )
+
+    cursor.execute("""
+        UPDATE complaints
+        SET complaint_date = substr(created_at, 1, 10)
+        WHERE complaint_date = ''
+          AND created_at IS NOT NULL
+          AND created_at != ''
+    """)
 
     cursor.execute("""
         UPDATE complaints

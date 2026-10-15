@@ -39,7 +39,6 @@ const btnRefreshStudent = document.getElementById("btn-refresh-student");
 const complaintDateInput = document.getElementById("complaint-date");
 const departmentInput = document.getElementById("department");
 const complaintStudentNameInput = document.getElementById("complaint-student-name");
-const complaintStudentRollInput = document.getElementById("complaint-student-roll");
 
 // Admin Elements
 const statTotal = document.getElementById("stat-total");
@@ -283,18 +282,10 @@ function showDashboardView() {
 }
 
 function populateComplaintStudentFields() {
-    const now = new Date();
-    const date = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 10);
     const studentName = state.user.full_name || state.user.username;
 
-    complaintDateInput.value = date;
-    complaintDateInput.defaultValue = date;
     complaintStudentNameInput.value = studentName;
     complaintStudentNameInput.defaultValue = studentName;
-    complaintStudentRollInput.value = state.user.username;
-    complaintStudentRollInput.defaultValue = state.user.username;
 }
 
 function toggleCustomLabInput() {
@@ -317,6 +308,7 @@ async function handleCreateComplaint(e) {
     
     const selectedLab = labNameSelect.value;
     const lab_name = selectedLab === "Others" ? customLabName.value.trim() : selectedLab;
+    const complaint_date = complaintDateInput.value;
     const department = departmentInput.value.trim();
     const lab_location = document.getElementById("lab-location").value.trim();
     const system_no = document.getElementById("system-no").value.trim();
@@ -324,7 +316,7 @@ async function handleCreateComplaint(e) {
     const priority = document.getElementById("priority").value;
     const description = document.getElementById("description").value.trim();
 
-    if (!department || !lab_name || !lab_location || !system_no || !issue_type || !description) {
+    if (!complaint_date || !department || !lab_name || !lab_location || !system_no || !issue_type || !description) {
         if (selectedLab === "Others" && !lab_name) {
             customLabName.reportValidity();
             return;
@@ -335,6 +327,7 @@ async function handleCreateComplaint(e) {
 
     try {
         await apiRequest("/api/complaints", "POST", {
+            complaint_date,
             department,
             lab_name,
             lab_location,
@@ -410,7 +403,7 @@ function renderStudentComplaints(complaints) {
 
             <div class="complaint-meta">
                 <span>Ticket #${c.id}</span>
-                <span>Filed: ${formatDate(c.created_at)}</span>
+                <span>Filed: ${formatComplaintDate(c.complaint_date || c.created_at)}</span>
             </div>
         </div>
     `).join("");
@@ -471,7 +464,7 @@ function renderAdminComplaints(complaints) {
     adminComplaintsTbody.innerHTML = complaints.map((c, index) => `
         <tr>
             <td><strong>${index + 1}</strong></td>
-            <td style="white-space: nowrap;">${formatDate(c.created_at)}</td>
+            <td style="white-space: nowrap;">${formatComplaintDate(c.complaint_date || c.created_at)}</td>
             <td>${escapeHtml(c.department || "Not specified")}</td>
             <td>
                 <strong>${escapeHtml(c.student_name)}</strong>
@@ -728,4 +721,16 @@ function formatDate(dateStr) {
     } catch {
         return dateStr;
     }
+}
+
+function formatComplaintDate(dateStr) {
+    if (!dateStr) return "-";
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+    if (!match) return formatDate(dateStr);
+    const [, year, month, day] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    });
 }

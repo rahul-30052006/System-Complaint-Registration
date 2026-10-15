@@ -56,6 +56,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
             "/api/complaints",
             headers=self.student_headers,
             json={
+                "complaint_date": "2025-03-14",
                 "department": "Computer Science",
                 "lab_name": "UG Lab",
                 "lab_location": "Block A, Room 204",
@@ -71,6 +72,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
         complaint = complaint_response.json()["complaint"]
         self.assertEqual(complaint["student_name"], "Sam Student")
         self.assertEqual(complaint["student_roll"], "student-17")
+        self.assertEqual(complaint["complaint_date"], "2025-03-14")
         self.assertEqual(complaint["department"], "Computer Science")
         self.assertEqual(complaint["status"], "Pending")
         self.assertEqual(complaint["created_at"][:10], datetime.now().strftime("%Y-%m-%d"))
@@ -131,7 +133,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
         self.assertEqual(admin_ticket["student_email"], "sam.student@example.com")
         for field in (
             "department", "student_name", "student_roll", "lab_name", "system_no",
-            "assigned_technician", "priority", "status", "rectified_date",
+            "complaint_date", "assigned_technician", "priority", "status", "rectified_date",
             "repair_action", "admin_remarks",
         ):
             self.assertIn(field, admin_ticket)
@@ -180,6 +182,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
             self.assertEqual(complaint["description"], "Existing complaint")
             self.assertEqual(complaint["admin_remarks"], "Old repair remarks")
             self.assertEqual(complaint["rectified_date"], "2025-01-03")
+            self.assertEqual(complaint["complaint_date"], "2025-01-02")
             self.assertEqual(complaint["department"], "")
             conn.close()
         finally:
