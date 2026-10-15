@@ -138,6 +138,125 @@ class ComplaintWorkflowTests(unittest.TestCase):
         ):
             self.assertIn(field, admin_ticket)
 
+    def test_admin_relogin_shows_current_database_complaints_without_confirmed_demo_rows(self):
+        conn = database.get_db()
+        conn.execute("""
+            INSERT INTO users (id, username, full_name, email, password_hash, role, created_at)
+            VALUES (3, ?, ?, ?, ?, 'student', ?)
+        """, (
+            "21CS_1791179196",
+            "Sarah Connor",
+            "sarah@example.com",
+            main.hash_password("SarahPassword123!"),
+            "2026-10-05 11:00:00",
+        ))
+        conn.executemany("""
+            INSERT INTO complaints (
+                id, student_id, student_name, student_roll, lab_name, system_no,
+                issue_type, description, created_at, updated_at
+            ) VALUES (?, 3, 'Sarah Connor', '21CS_1791179196', ?, ?, ?, ?, ?, ?)
+        """, (
+            (
+                3,
+                "Lab 1 - Programming & Data Structures",
+                "PC-08",
+                "Hardware / CPU / Power Issue",
+                "System does not turn on. Power supply light is blinking.",
+                "2026-10-05 11:16:36",
+                "2026-10-05 11:16:36",
+            ),
+            (
+                4,
+                "Lab 2 - Artificial Intelligence & Data Science",
+                "PC-15",
+                "Keyboard / Mouse / Peripherals",
+                "Mouse left click button is stuck.",
+                "2026-10-05 11:16:36",
+                "2026-10-05 11:16:36",
+            ),
+        ))
+        conn.commit()
+        conn.close()
+
+        submitted = self.client.post(
+            "/api/complaints",
+            headers=self.student_headers,
+            json={
+                "complaint_date": "2026-10-15",
+                "department": "Computer Science",
+                "lab_name": "UG Lab",
+                "lab_location": "Block A, Room 204",
+                "system_no": "PC-42",
+                "issue_type": "Software",
+                "priority": "Medium",
+                "description": "The required development software will not start.",
+            },
+        )
+        self.assertEqual(submitted.status_code, 201)
+        actual_complaint = submitted.json()["complaint"]
+
+        student_complaints = self.client.get(
+            "/api/complaints/my",
+            headers=self.student_headers,
+        )
+        self.assertEqual(student_complaints.status_code, 200)
+        self.assertEqual(
+            [item["id"] for item in student_complaints.json()["complaints"]],
+            [actual_complaint["id"]],
+        )
+
+        for _ in range(2):
+            admin_complaints = self.client.get(
+                "/api/admin/complaints",
+                headers=self.admin_headers,
+            )
+            self.assertEqual(admin_complaints.status_code, 200)
+            rows = admin_complaints.json()["complaints"]
+            self.assertEqual([item["id"] for item in rows], [actual_complaint["id"]])
+            displayed = rows[0]
+            self.assertEqual(displayed["student_name"], "Sam Student")
+            self.assertEqual(displayed["student_roll"], "student-17")
+            self.assertEqual(displayed["lab_name"], "UG Lab")
+            self.assertEqual(displayed["system_no"], "PC-42")
+            self.assertEqual(displayed["description"], "The required development software will not start.")
+            self.assertEqual(displayed["complaint_date"], "2026-10-15")
+            self.assertEqual(displayed["status"], "Pending")
+
+        relogin = self.client.post(
+            "/api/auth/login",
+            json={"login_id": "repair-admin", "password": "AdminPassword123!"},
+        )
+        self.assertEqual(relogin.status_code, 200)
+        relogin_headers = {
+            "Authorization": f"Bearer {relogin.json()['access_token']}"
+        }
+        after_relogin = self.client.get(
+            "/api/admin/complaints",
+            headers=relogin_headers,
+        )
+        self.assertEqual(after_relogin.status_code, 200)
+        self.assertEqual(
+            [item["id"] for item in after_relogin.json()["complaints"]],
+            [actual_complaint["id"]],
+        )
+
+        stats = self.client.get("/api/admin/stats", headers=relogin_headers)
+        self.assertEqual(stats.status_code, 200)
+        self.assertEqual(stats.json()["total"], 1)
+        self.assertEqual(stats.json()["pending"], 1)
+
+        conn = database.get_db()
+        retained_rows = conn.execute(
+            "SELECT id, system_no FROM complaints WHERE id IN (3, 4) ORDER BY id"
+        ).fetchall()
+        total_rows = conn.execute("SELECT COUNT(*) AS count FROM complaints").fetchone()["count"]
+        conn.close()
+        self.assertEqual(
+            [(row["id"], row["system_no"]) for row in retained_rows],
+            [(3, "PC-08"), (4, "PC-15")],
+        )
+        self.assertEqual(total_rows, 3)
+
     def test_migration_preserves_existing_complaints_and_backfills_rectified_date(self):
         legacy_path = os.path.join(self.temp_dir.name, "legacy.db")
         legacy_conn = sqlite3.connect(legacy_path)

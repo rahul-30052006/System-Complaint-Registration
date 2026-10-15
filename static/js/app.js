@@ -668,13 +668,25 @@ async function apiRequest(url, method = "GET", body = null) {
         headers["Authorization"] = `Bearer ${state.token}`;
     }
 
-    const options = { method, headers };
+    const options = {
+        method,
+        headers,
+        cache: method === "GET" ? "no-store" : "default"
+    };
     if (body) {
         options.body = JSON.stringify(body);
     }
 
     const response = await fetch(url, options);
-    const data = await response.json();
+    let data;
+    try {
+        data = await response.json();
+    } catch {
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}.`);
+        }
+        throw new Error("The server returned an invalid response.");
+    }
 
     if (!response.ok) {
         throw new Error(data.detail || data.message || "An unexpected error occurred.");
