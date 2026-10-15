@@ -72,6 +72,16 @@ body.dashboard-mode::before {
     display: none;
 }
 
+#student-section {
+    background-image:
+        linear-gradient(rgb(255 255 255 / 0.84), rgb(239 246 255 / 0.84)),
+        url("../images/auth-background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: var(--radius-lg);
+}
+
 button,
 a,
 input,
