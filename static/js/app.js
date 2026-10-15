@@ -452,7 +452,7 @@ function renderAdminComplaints(complaints) {
     if (!complaints.length) {
         adminComplaintsTbody.innerHTML = `
             <tr>
-                <td colspan="14" class="empty-state">
+                <td colspan="10" class="empty-state">
                     <div class="empty-state-icon">🔍</div>
                     <p>No complaints match your current filter criteria.</p>
                 </td>
@@ -463,50 +463,22 @@ function renderAdminComplaints(complaints) {
 
     adminComplaintsTbody.innerHTML = complaints.map((c, index) => `
         <tr class="complaint-row">
-            <td data-label="Serial Number"><strong>${index + 1}</strong></td>
-            <td data-label="Complaint Date">${formatComplaintDate(c.complaint_date || c.created_at)}</td>
-            <td data-label="Department">${escapeHtml(c.department || "Not specified")}</td>
+            <td data-label="SL No."><strong>${index + 1}</strong></td>
+            <td data-label="Complaint Date">${formatComplaintDate(c.complaint_date)}</td>
             <td data-label="Student Name">
                 <strong>${escapeHtml(c.student_name)}</strong>
             </td>
-            <td data-label="Student Roll Number">${escapeHtml(c.student_roll)}</td>
-            <td data-label="Location / Lab">
-                <small style="color: #64748b;">${escapeHtml(c.lab_name)}</small>
-                ${c.lab_location ? `<br><small style="color: #64748b;">${escapeHtml(c.lab_location)}</small>` : ''}
-            </td>
-            <td data-label="System Number / Equipment"><span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(c.system_no)}</span></td>
-            <td data-label="Complaint Details">
+            <td data-label="Department">${escapeHtml(c.department || "Not specified")}</td>
+            <td data-label="Lab Name">${escapeHtml(c.lab_name)}</td>
+            <td data-label="System No."><span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(c.system_no)}</span></td>
+            <td data-label="Lab Location">${escapeHtml(c.lab_location || "Not specified")}</td>
+            <td data-label="Issue">
                 <strong>${escapeHtml(c.issue_type)}</strong>
-                <p style="font-size: 0.8rem; color: #334155; margin-top: 0.25rem;">${escapeHtml(c.description)}</p>
             </td>
-            <td data-label="Assigned Technician">${escapeHtml(c.assigned_technician || "Not assigned")}</td>
             <td data-label="Priority">
                 <span class="priority-badge priority-${c.priority.toLowerCase()}">${c.priority}</span>
             </td>
-            <td data-label="Status">
-                <span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">${c.status}</span>
-            </td>
-            <td data-label="Rectified Date" style="font-size: 0.8rem; color: #64748b;">
-                ${c.rectified_date ? escapeHtml(c.rectified_date) : "Not rectified"}
-            </td>
-            <td data-label="Repair Remarks">
-                ${c.repair_action ? `<div><strong>Action:</strong> ${escapeHtml(c.repair_action)}</div>` : ''}
-                ${c.admin_remarks ? `<div><strong>Remarks:</strong> ${escapeHtml(c.admin_remarks)}</div>` : ''}
-                ${!c.repair_action && !c.admin_remarks ? "No repair notes" : ""}
-            </td>
-            <td data-label="Actions">
-                <div class="admin-complaint-actions">
-                    <button class="btn btn-outline-primary btn-sm" onclick="openStatusModal(${c.id})">
-                        ✏️ Update
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm" data-email-complaint="${c.id}" aria-label="Email ${escapeHtml(c.student_name)} about complaint #${c.id}">
-                        ✉️ Email
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm" data-delete-complaint="${c.id}" aria-label="Delete complaint #${c.id}">
-                        Delete
-                    </button>
-                </div>
-            </td>
+            <td data-label="Complaint Details">${escapeHtml(c.description)}</td>
         </tr>
     `).join("");
 }

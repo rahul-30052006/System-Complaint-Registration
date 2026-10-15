@@ -705,7 +705,7 @@ textarea:focus-visible {
 
 .admin-complaints-table {
     table-layout: fixed;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
 }
 
 .admin-complaints-table th,
@@ -725,6 +725,16 @@ textarea:focus-visible {
 .admin-complaints-table p {
     margin-bottom: 0;
     overflow-wrap: anywhere;
+}
+
+.admin-complaints-table thead th {
+    padding: 0.55rem 0.45rem;
+    font-size: 0.72rem;
+    line-height: 1.3;
+}
+
+.admin-complaints-table tbody td {
+    padding: 0.65rem 0.45rem;
 }
 
 .admin-complaint-actions {
@@ -1035,8 +1045,7 @@ textarea:focus-visible {
     }
 
     .admin-complaints-table tbody tr.complaint-row td:nth-child(8),
-    .admin-complaints-table tbody tr.complaint-row td:nth-child(13),
-    .admin-complaints-table tbody tr.complaint-row td:nth-child(14) {
+    .admin-complaints-table tbody tr.complaint-row td:nth-child(10) {
         grid-column: 1 / -1;
     }
 
