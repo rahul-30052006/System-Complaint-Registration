@@ -51,6 +51,7 @@ const adminSearch = document.getElementById("admin-search");
 const adminFilterLab = document.getElementById("admin-filter-lab");
 const adminFilterStatus = document.getElementById("admin-filter-status");
 const btnRefreshAdmin = document.getElementById("btn-refresh-admin");
+const btnSendEmail = document.getElementById("btn-send-email");
 
 // Modal Elements
 const statusModal = document.getElementById("status-modal");
@@ -65,6 +66,16 @@ const modalAssignedTechnician = document.getElementById("modal-assigned-technici
 const modalRepairAction = document.getElementById("modal-repair-action");
 const modalAdminRemarks = document.getElementById("modal-admin-remarks");
 const btnDeleteComplaint = document.getElementById("btn-delete-complaint");
+const emailModal = document.getElementById("email-modal");
+const emailComposeForm = document.getElementById("email-compose-form");
+const emailModalClose = document.getElementById("email-modal-close");
+const emailCancel = document.getElementById("email-cancel");
+const emailRecipient = document.getElementById("email-recipient");
+const emailSubject = document.getElementById("email-subject");
+const emailMessage = document.getElementById("email-message");
+const emailSubmit = document.getElementById("email-submit");
+const emailSendStatus = document.getElementById("email-send-status");
+const emailComplaintContext = document.getElementById("email-complaint-context");
 
 // ================= INITIALIZATION =================
 document.addEventListener("DOMContentLoaded", () => {
@@ -108,6 +119,7 @@ function initEvents() {
         customLabName.value = "";
     });
     modalStatusForm.addEventListener("submit", handleUpdateStatus);
+    emailComposeForm.addEventListener("submit", handleSendEmail);
 
     // Logout
     btnLogout.addEventListener("click", handleLogout);
@@ -115,6 +127,7 @@ function initEvents() {
     // Refresh buttons
     if (btnRefreshStudent) btnRefreshStudent.addEventListener("click", loadStudentComplaints);
     if (btnRefreshAdmin) btnRefreshAdmin.addEventListener("click", loadAdminData);
+    if (btnSendEmail) btnSendEmail.addEventListener("click", () => openEmailModal());
 
     // Admin Filters & Search
     let searchDebounce;
@@ -128,11 +141,26 @@ function initEvents() {
     // Modal controls
     modalClose.addEventListener("click", closeModal);
     btnCancelModal.addEventListener("click", closeModal);
+    emailModalClose.addEventListener("click", closeEmailModal);
+    emailCancel.addEventListener("click", closeEmailModal);
     btnDeleteComplaint.addEventListener("click", handleDeleteComplaint);
     adminComplaintsTbody.addEventListener("click", event => {
+        const emailButton = event.target.closest("[data-email-complaint]");
+        if (emailButton) {
+            openEmailModal(emailButton.dataset.emailComplaint);
+            return;
+        }
         const button = event.target.closest("[data-delete-complaint]");
         if (!button) return;
         deleteComplaint(button.dataset.deleteComplaint, false, button);
+    });
+    emailModal.addEventListener("click", event => {
+        if (event.target === emailModal) closeEmailModal();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && emailModal.style.display === "flex") {
+            closeEmailModal();
+        }
     });
 
     toggleCustomLabInput();
@@ -478,6 +506,9 @@ function renderAdminComplaints(complaints) {
                     <button class="btn btn-outline-primary btn-sm" onclick="openStatusModal(${c.id})">
                         ✏️ Update
                     </button>
+                    <button class="btn btn-outline-primary btn-sm" data-email-complaint="${c.id}" aria-label="Email ${escapeHtml(c.student_name)} about complaint #${c.id}">
+                        ✉️ Email
+                    </button>
                     <button class="btn btn-outline-danger btn-sm" data-delete-complaint="${c.id}" aria-label="Delete complaint #${c.id}">
                         Delete
                     </button>
@@ -507,6 +538,74 @@ window.openStatusModal = function(complaintId) {
 
     statusModal.style.display = "flex";
 };
+
+function openEmailModal(complaintId = null) {
+    const complaint = complaintId
+        ? state.adminComplaints.find(item => String(item.id) === String(complaintId))
+        : null;
+
+    emailComposeForm.reset();
+    emailSendStatus.textContent = "";
+    emailSendStatus.className = "email-send-status";
+
+    if (complaint) {
+        emailRecipient.value = complaint.student_email || "";
+        emailSubject.value = `Update regarding complaint #${complaint.id}`;
+        emailMessage.value = [
+            `Dear ${complaint.student_name || "Student"},`,
+            "",
+            `I am writing regarding your system complaint #${complaint.id} (${complaint.system_no || "system"}).`,
+            "",
+            "Regards,",
+            state.user.full_name || "System Administrator"
+        ].join("\n");
+        emailComplaintContext.textContent = complaint.student_email
+            ? `Complaint #${complaint.id} · Recipient filled from the student's registered email.`
+            : `Complaint #${complaint.id} · No registered student email is available; enter the recipient address.`;
+        emailComplaintContext.style.display = "block";
+    } else {
+        emailComplaintContext.textContent = "";
+        emailComplaintContext.style.display = "none";
+    }
+
+    emailModal.style.display = "flex";
+    emailRecipient.focus();
+}
+
+function closeEmailModal() {
+    if (emailSubmit.disabled) return;
+    emailModal.style.display = "none";
+    emailComposeForm.reset();
+    emailSendStatus.textContent = "";
+}
+
+async function handleSendEmail(event) {
+    event.preventDefault();
+    emailSubmit.disabled = true;
+    emailSubmit.textContent = "Sending...";
+    emailSendStatus.textContent = "Sending email...";
+    emailSendStatus.className = "email-send-status is-loading";
+
+    try {
+        await apiRequest("/send-email", "POST", {
+            to_email: emailRecipient.value.trim(),
+            subject: emailSubject.value.trim(),
+            message: emailMessage.value
+        });
+        showToast("Email sent successfully.", "success");
+        emailModal.style.display = "none";
+        emailComposeForm.reset();
+        emailSendStatus.textContent = "";
+    } catch (err) {
+        const message = err.message || "Unable to send email. Please try again.";
+        emailSendStatus.textContent = message;
+        emailSendStatus.className = "email-send-status is-error";
+        showToast(message, "error");
+    } finally {
+        emailSubmit.disabled = false;
+        emailSubmit.textContent = "✉️ Send Email";
+    }
+}
 
 function closeModal() {
     statusModal.style.display = "none";

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Complaint Registration</title>
     <meta name="description" content="Report, track, and resolve computer lab system issues.">
-    <link rel="stylesheet" href="/static/css/styles.css?v=13">
+    <link rel="stylesheet" href="/static/css/styles.css?v=14">
     <!-- Google Fonts for modern typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -236,7 +236,10 @@
                     <h2>Admin Lab System Control Panel</h2>
                     <p>Review, track, and update complaint tickets submitted by students</p>
                 </div>
-                <button id="btn-refresh-admin" class="btn btn-outline-primary">🔄 Refresh Complaints & Stats</button>
+                <div class="admin-toolbar-actions">
+                    <button id="btn-send-email" class="btn btn-primary" type="button">✉️ Send Email</button>
+                    <button id="btn-refresh-admin" class="btn btn-outline-primary" type="button">🔄 Refresh Complaints & Stats</button>
+                </div>
             </div>
 
             <!-- Admin Stats Counter Cards -->
@@ -383,7 +386,42 @@
         </div>
     </div>
 
+    <!-- ADMIN EMAIL COMPOSE MODAL -->
+    <div id="email-modal" class="modal-backdrop" style="display: none;">
+        <section class="modal-window email-modal-window" role="dialog" aria-modal="true" aria-labelledby="email-modal-title">
+            <div class="modal-header">
+                <div>
+                    <h3 id="email-modal-title">Send Email</h3>
+                    <p class="email-modal-description">Compose a message to a student using the configured mail service.</p>
+                </div>
+                <button id="email-modal-close" class="btn-close" type="button" aria-label="Close email form">&times;</button>
+            </div>
+            <form id="email-compose-form">
+                <div class="modal-body">
+                    <div id="email-complaint-context" class="modal-info-summary" style="display: none;"></div>
+                    <div class="form-group">
+                        <label for="email-recipient">Recipient email address *</label>
+                        <input id="email-recipient" type="email" autocomplete="email" maxlength="254" placeholder="student@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email-subject">Subject *</label>
+                        <input id="email-subject" type="text" maxlength="998" placeholder="Email subject" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email-message">Message *</label>
+                        <textarea id="email-message" rows="7" placeholder="Write your message..." required></textarea>
+                    </div>
+                    <p id="email-send-status" class="email-send-status" role="status" aria-live="polite"></p>
+                </div>
+                <div class="modal-footer email-modal-footer">
+                    <button id="email-cancel" class="btn btn-secondary" type="button">Cancel</button>
+                    <button id="email-submit" class="btn btn-primary" type="submit">✉️ Send Email</button>
+                </div>
+            </form>
+        </section>
+    </div>
+
     <!-- App Scripts -->
-    <script src="/static/js/app.js?v=12"></script>
+    <script src="/static/js/app.js?v=13"></script>
 </body>
 </html>

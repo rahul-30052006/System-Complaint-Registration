@@ -128,6 +128,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
         admin_complaints = self.client.get("/api/admin/complaints", headers=self.admin_headers)
         self.assertEqual(admin_complaints.status_code, 200)
         admin_ticket = admin_complaints.json()["complaints"][0]
+        self.assertEqual(admin_ticket["student_email"], "sam.student@example.com")
         for field in (
             "department", "student_name", "student_roll", "lab_name", "system_no",
             "assigned_technician", "priority", "status", "rectified_date",

@@ -303,7 +303,12 @@ def get_all_complaints(
     conn = get_db()
     cursor = conn.cursor()
     
-    query = "SELECT * FROM complaints WHERE 1=1"
+    query = """
+        SELECT c.*, u.email AS student_email
+        FROM complaints c
+        LEFT JOIN users u ON u.id = c.student_id
+        WHERE 1=1
+    """
     params = []
     
     if status_filter and status_filter.lower() != "all":
@@ -319,7 +324,7 @@ def get_all_complaints(
         query += " AND (student_name LIKE ? OR student_roll LIKE ? OR department LIKE ? OR lab_name LIKE ? OR lab_location LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ? OR assigned_technician LIKE ? OR repair_action LIKE ? OR admin_remarks LIKE ?)"
         params.extend([search_term] * 11)
         
-    query += " ORDER BY id DESC"
+    query += " ORDER BY c.id DESC"
     
     cursor.execute(query, tuple(params))
     rows = [dict(r) for r in cursor.fetchall()]

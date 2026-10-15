@@ -27,6 +27,7 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
 - **Admin setup**: Admin accounts are provisioned locally with `create_admin.py`; passwords are entered through a hidden, confirmed prompt.
 - **Live Statistics Overview**: Counters for Total, Pending, In Progress, and Resolved complaints.
 - **Search & Filter**: Search complaints by student name, roll number, system ID, or keyword; filter by lab and status.
+- **Email Students**: Compose and send Gmail notifications from the admin dashboard, with the registered student email prefilled when available.
 - **Action & Resolution**:
   - Update ticket status (`Pending` -> `In Progress` -> `Resolved` / `Rejected`).
   - Add administrative remarks or action notes (e.g. *"RAM replaced, system tested OK"*).

@@ -504,6 +504,13 @@ textarea:focus-visible {
     gap: 1rem;
 }
 
+.admin-toolbar-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
 .welcome-box h2 {
     font-size: 1.6rem;
     font-weight: 800;
@@ -795,6 +802,10 @@ textarea:focus-visible {
     flex-direction: column;
 }
 
+.email-modal-window {
+    max-width: 620px;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -806,6 +817,12 @@ textarea:focus-visible {
 .modal-header h3 {
     font-size: 1.15rem;
     font-weight: 700;
+}
+
+.email-modal-description {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    margin-top: 0.2rem;
 }
 
 .btn-close {
@@ -837,6 +854,30 @@ textarea:focus-visible {
     padding: 1rem 1.5rem;
     background: #f8fafc;
     border-top: 1px solid var(--border-color);
+}
+
+.email-modal-footer {
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.email-send-status {
+    min-height: 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.email-send-status.is-loading {
+    color: var(--secondary);
+}
+
+.email-send-status.is-error {
+    color: var(--danger-hover);
+}
+
+#email-submit:disabled {
+    cursor: wait;
+    opacity: 0.7;
 }
 
 .right-actions {
