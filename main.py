@@ -1,16 +1,17 @@
 import os
 import logging
 import sqlite3
+import smtplib
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from database import get_db, init_db
-from email_service import send_resolution_email
+from email_service import send_custom_email, send_resolution_email
 from auth import (
     hash_password,
     verify_password,
@@ -66,6 +67,39 @@ class ComplaintStatusUpdate(BaseModel):
     assigned_technician: Optional[str] = Field(default=None, max_length=100)
     repair_action: Optional[str] = Field(default=None, max_length=2000)
     admin_remarks: Optional[str] = Field(default=None, max_length=1000)
+
+# ----------------- Email Routes -----------------
+
+class EmailRequest(BaseModel):
+    to_email: EmailStr
+    subject: str = Field(..., min_length=1, max_length=998)
+    message: str
+
+    @field_validator("subject")
+    @classmethod
+    def subject_must_not_contain_newlines(cls, subject: str) -> str:
+        if "\r" in subject or "\n" in subject:
+            raise ValueError("Subject must not contain newline characters")
+        return subject
+
+
+@app.post("/send-email")
+def send_email(data: EmailRequest):
+    try:
+        send_custom_email(str(data.to_email), data.subject, data.message)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="SMTP_EMAIL and SMTP_PASSWORD environment variables must be set.",
+        ) from exc
+    except (smtplib.SMTPException, OSError) as exc:
+        logger.exception("SMTP email send failed")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to send email. Check SMTP settings and credentials.",
+        ) from exc
+
+    return {"message": "Email sent successfully"}
 
 # ----------------- Auth Routes -----------------
 

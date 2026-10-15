@@ -42,7 +42,9 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
 ├── database.py              # SQLite schema and connection helpers
 ├── auth.py                  # Password hashing and bearer-token helpers
 ├── create_admin.py          # CLI utility for administrator accounts
+├── email_service.py         # Gmail SMTP delivery for custom and resolution emails
 ├── requirements.txt
+├── .env.example             # SMTP configuration template (copy to .env)
 ├── complaints.db            # Local SQLite database (created at runtime)
 └── static/
     ├── index.html           # Student sign-in, registration, and dashboards
@@ -74,21 +76,32 @@ On Windows:
 pip install -r requirements.txt
 ```
 
-### 3. Create an administrator account
+### 3. Configure Gmail SMTP
+
+Copy `.env.example` to `.env` and set `SMTP_EMAIL` to your Gmail address and
+`SMTP_PASSWORD` to a Google App Password (not your regular Google password).
+The app loads `.env` from the project root. Keep `.env` private; it is ignored by
+Git. Gmail App Passwords require 2-Step Verification.
+
+PowerShell:
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+### 4. Create an administrator account
 
 Run the setup utility and enter a strong, unique password when prompted:
 ```bash
 python create_admin.py
 ```
 
-### 4. Start the server
+### 5. Start the server
 ```bash
 uvicorn main:app --reload --port 8001
 ```
 
-For resolution email notifications, configure Gmail in the same PowerShell window before starting the server (see [Gmail resolution notifications](#gmail-resolution-notifications)).
-
-### 5. Open the application
+### 6. Open the application
 
 Administrator sign-in:
 ```text
@@ -108,35 +121,29 @@ After signing in, users are taken to the role-appropriate dashboard at `/dashboa
 - The login pages use the supplied computer-network background image at `static/images/computer-network-background.jpg`.
 - The bundled bearer-token signing key is for local development. Configure a private secret and restrict CORS origins before deploying this application to a public environment.
 - Use HTTPS and a production ASGI server configuration for deployments; do not use `--reload` outside development.
+- `POST /send-email` is unauthenticated to match the requested endpoint. Restrict access or add authentication and rate limiting before exposing it to the public internet.
 
-### Gmail resolution notifications
+### Gmail email delivery
 
 When an admin changes a ticket from a status other than `Resolved` to `Resolved`, the app sends one email to the address registered to that ticket's student account. Saving an already-resolved ticket does not send another notification. The ticket update is retained even if Gmail is unavailable; the admin sees a warning and the server logs the failure.
 
-The mailer uses Python's built-in SMTP and email libraries, so no package installation is needed beyond `pip install -r requirements.txt`.
+The app also provides `POST /send-email` for sending a custom email. Both custom
+emails and resolution notifications use Gmail SMTP at `smtp.gmail.com:587` with
+STARTTLS. The mailer uses Python's built-in SMTP and email libraries.
 
 1. In the student's Google Account, enable 2-Step Verification.
 2. Open the Google Account **App passwords** page from Security, create an app password for this project, and copy the generated password. Use an app password, not the normal Google Account password. If Google does not offer App passwords, the account or organization may not allow them.
-3. In PowerShell, set the Gmail sender address and enter the app password without putting the password in the command history:
-
-  ```powershell
-  $env:GMAIL_ADDRESS = "your-gmail-address@gmail.com"
-  $secureAppPassword = Read-Host "Gmail App Password" -AsSecureString
-  $env:GMAIL_APP_PASSWORD = [System.Net.NetworkCredential]::new("", $secureAppPassword).Password
-  ```
-
-4. In that same PowerShell window, activate the virtual environment, install the project requirements, and start the server:
+3. Copy `.env.example` to `.env` and set `SMTP_EMAIL` and `SMTP_PASSWORD`. Do not commit `.env` or share the App Password.
+4. Start the server from the project root:
 
   ```powershell
   .\.venv\Scripts\Activate.ps1
-  pip install -r requirements.txt
   uvicorn main:app --reload --port 8001
   ```
 
-  The environment variables apply only to that PowerShell session and are not stored in the project. Do not commit credentials or paste the app password into source files.
-
-5. To test delivery, sign in as a student, submit a complaint with a registered Gmail address, then sign in as an admin. In **Update Ticket**, select `Resolved`, enter admin remarks, and click **Save Changes**. Confirm the student receives an email containing the ticket, student, system location, complaint, status, and remarks; check Spam if it is not in the inbox. Save the same resolved ticket again and confirm that no second message is sent.
-6. If the ticket saves but the admin sees an email failure warning, check the server terminal, verify both environment variables in that server's PowerShell session, and confirm the App password is valid. Once corrected, move the ticket to another status and then resolve it again to trigger a new resolution transition.
+5. Test custom sending at `http://127.0.0.1:8001/docs`: expand `POST /send-email`, choose **Try it out**, enter a recipient, subject, and message, then select **Execute**. A successful delivery returns `{"message":"Email sent successfully"}`. A missing configuration is reported as HTTP 500; SMTP delivery failures are reported as HTTP 502. Check Spam if the email is not in the inbox.
+6. To test the existing complaint workflow, sign in as a student and submit a complaint with a registered email address, then sign in as an admin. In **Update Ticket**, select `Resolved` and click **Save Changes**. The existing resolution email is sent on the transition to `Resolved`; saving an already-resolved ticket does not send a duplicate. If the ticket saves but the admin sees an email failure warning, check the server terminal and verify the App Password in `.env`. Once corrected, move the ticket to another status and then resolve it again to trigger a new notification.
+7. To connect custom email to another complaint action, call `send_custom_email(...)` from the backend after the relevant action succeeds, or call `POST /send-email` from a trusted client. The built-in resolution notification already runs in the backend; no extra frontend call is needed. Avoid sending SMTP credentials to browser code.
 
 ---
 
@@ -153,6 +160,7 @@ The mailer uses Python's built-in SMTP and email libraries, so no package instal
 | `GET` | `/api/admin/stats` | Complaint summary metrics | Admin |
 | `PATCH` | `/api/admin/complaints/{id}` | Update status & add remarks | Admin |
 | `DELETE` | `/api/admin/complaints/{id}` | Remove a complaint ticket | Admin |
+| `POST` | `/send-email` | Send an email through Gmail SMTP | Public |
 | `GET` | `/` | Admin login page | Public |
 | `GET` | `/student-login` | Student login and registration page | Public |
 | `GET` | `/dashboard` | Student or admin dashboard | Public page; API data requires authentication |
