@@ -674,7 +674,7 @@ textarea:focus-visible {
 }
 
 .table-responsive {
-    overflow-x: auto;
+    width: 100%;
 }
 
 .data-table {
@@ -686,21 +686,56 @@ textarea:focus-visible {
 
 .data-table thead th {
     background-color: #f8fafc;
-    padding: 0.85rem 1rem;
+    padding: 0.55rem 0.35rem;
     font-weight: 700;
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
+    vertical-align: bottom;
 }
 
 .data-table tbody td {
-    padding: 1rem;
+    padding: 0.6rem 0.35rem;
     border-bottom: 1px solid var(--border-color);
-    vertical-align: middle;
+    vertical-align: top;
 }
 
 .data-table tbody tr:hover {
     background-color: #f8fafc;
+}
+
+.admin-complaints-table {
+    table-layout: fixed;
+    font-size: 0.72rem;
+}
+
+.admin-complaints-table th,
+.admin-complaints-table td {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.admin-complaints-table .badge,
+.admin-complaints-table .priority-badge,
+.admin-complaints-table .status-badge {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.admin-complaints-table p {
+    margin-bottom: 0;
+    overflow-wrap: anywhere;
+}
+
+.admin-complaint-actions {
+    gap: 0.3rem;
+}
+
+.admin-complaint-actions .btn {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.68rem;
+    line-height: 1.25;
+    white-space: normal;
 }
 
 /* Student Complaints Cards */
@@ -944,6 +979,93 @@ textarea:focus-visible {
 }
 
 /* Responsive */
+@media (max-width: 900px) {
+    .table-responsive {
+        overflow: visible;
+    }
+
+    .admin-complaints-table,
+    .admin-complaints-table tbody {
+        display: block;
+    }
+
+    .admin-complaints-table thead {
+        display: none;
+    }
+
+    .admin-complaints-table tbody {
+        display: grid;
+        gap: 0.85rem;
+        padding: 0.85rem;
+    }
+
+    .admin-complaints-table tbody tr.complaint-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: #ffffff;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .admin-complaints-table tbody tr.complaint-row:hover {
+        background: #ffffff;
+    }
+
+    .admin-complaints-table tbody tr.complaint-row td {
+        display: block;
+        min-width: 0;
+        padding: 0.65rem 0.75rem;
+        border-bottom: 1px solid #eef2f7;
+        font-size: 0.8rem;
+    }
+
+    .admin-complaints-table tbody tr.complaint-row td::before {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: var(--text-secondary);
+        content: attr(data-label);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.035em;
+        line-height: 1.3;
+        text-transform: uppercase;
+    }
+
+    .admin-complaints-table tbody tr.complaint-row td:nth-child(8),
+    .admin-complaints-table tbody tr.complaint-row td:nth-child(13),
+    .admin-complaints-table tbody tr.complaint-row td:nth-child(14) {
+        grid-column: 1 / -1;
+    }
+
+    .admin-complaints-table tbody tr.complaint-row td:last-child {
+        border-bottom: 0;
+    }
+
+    .admin-complaint-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .admin-complaint-actions .btn {
+        flex: 1 1 auto;
+        min-width: 5.5rem;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .admin-complaints-table tbody tr:not(.complaint-row) {
+        display: block;
+    }
+
+    .admin-complaints-table tbody tr:not(.complaint-row) td {
+        display: block;
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .auth-wrapper {
         min-height: calc(100vh - 90px);
