@@ -748,6 +748,32 @@ textarea:focus-visible {
     white-space: normal;
 }
 
+.complaint-details-modal {
+    max-width: 680px;
+}
+
+.complaint-detail-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.complaint-detail-list > div {
+    min-width: 0;
+}
+
+.complaint-detail-list dt {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.complaint-detail-list dd {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
 /* Student Complaints Cards */
 .complaints-grid {
     display: grid;
@@ -1045,7 +1071,8 @@ textarea:focus-visible {
     }
 
     .admin-complaints-table tbody tr.complaint-row td:nth-child(8),
-    .admin-complaints-table tbody tr.complaint-row td:nth-child(10) {
+    .admin-complaints-table tbody tr.complaint-row td:nth-child(10),
+    .admin-complaints-table tbody tr.complaint-row td:nth-child(11) {
         grid-column: 1 / -1;
     }
 
@@ -1072,6 +1099,10 @@ textarea:focus-visible {
     .admin-complaints-table tbody tr:not(.complaint-row) td {
         display: block;
         width: 100%;
+    }
+
+    .complaint-detail-list {
+        grid-template-columns: 1fr;
     }
 }
 

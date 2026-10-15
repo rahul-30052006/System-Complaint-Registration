@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Complaint Registration</title>
     <meta name="description" content="Report, track, and resolve computer lab system issues.">
-    <link rel="stylesheet" href="/static/css/styles.css?v=18">
+    <link rel="stylesheet" href="/static/css/styles.css?v=19">
     <!-- Google Fonts for modern typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -304,16 +304,17 @@
                 <div class="table-responsive">
                     <table class="data-table admin-complaints-table">
                         <colgroup>
-                            <col style="width: 6%">
+                            <col style="width: 5%">
                             <col style="width: 8%">
-                            <col style="width: 11%">
-                            <col style="width: 9%">
                             <col style="width: 10%">
                             <col style="width: 8%">
-                            <col style="width: 11%">
-                            <col style="width: 11%">
+                            <col style="width: 9%">
                             <col style="width: 7%">
-                            <col style="width: 19%">
+                            <col style="width: 9%">
+                            <col style="width: 10%">
+                            <col style="width: 6%">
+                            <col style="width: 14%">
+                            <col style="width: 14%">
                         </colgroup>
                         <thead>
                             <tr>
@@ -327,6 +328,7 @@
                                 <th>Issue</th>
                                 <th>Priority</th>
                                 <th>Complaint Details</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="admin-complaints-tbody">
@@ -337,6 +339,21 @@
             </div>
         </section>
     </main>
+
+    <!-- COMPLAINT DETAILS MODAL -->
+    <div id="view-complaint-modal" class="modal-backdrop" style="display: none;">
+        <section class="modal-window complaint-details-modal" role="dialog" aria-modal="true" aria-labelledby="view-complaint-title">
+            <div class="modal-header">
+                <h3 id="view-complaint-title">Complaint Details</h3>
+                <button id="view-complaint-close" class="btn-close" type="button" aria-label="Close complaint details">&times;</button>
+            </div>
+            <div id="view-complaint-content" class="modal-body"></div>
+            <div class="modal-footer">
+                <button id="view-complaint-update" class="btn btn-outline-primary" type="button">Update Status</button>
+                <button id="view-complaint-dismiss" class="btn btn-secondary" type="button">Close</button>
+            </div>
+        </section>
+    </div>
 
     <!-- ADMIN ACTION MODAL (Update Status & Remarks) -->
     <div id="status-modal" class="modal-backdrop" style="display: none;">
@@ -426,6 +443,6 @@
     </div>
 
     <!-- App Scripts -->
-    <script src="/static/js/app.js?v=14"></script>
+    <script src="/static/js/app.js?v=15"></script>
 </body>
 </html>

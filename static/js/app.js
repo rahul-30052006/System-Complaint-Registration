@@ -46,6 +46,12 @@ const statPending = document.getElementById("stat-pending");
 const statProgress = document.getElementById("stat-progress");
 const statResolved = document.getElementById("stat-resolved");
 const adminComplaintsTbody = document.getElementById("admin-complaints-tbody");
+const viewComplaintModal = document.getElementById("view-complaint-modal");
+const viewComplaintTitle = document.getElementById("view-complaint-title");
+const viewComplaintContent = document.getElementById("view-complaint-content");
+const viewComplaintClose = document.getElementById("view-complaint-close");
+const viewComplaintDismiss = document.getElementById("view-complaint-dismiss");
+const viewComplaintUpdate = document.getElementById("view-complaint-update");
 const adminSearch = document.getElementById("admin-search");
 const adminFilterLab = document.getElementById("admin-filter-lab");
 const adminFilterStatus = document.getElementById("admin-filter-status");
@@ -144,6 +150,11 @@ function initEvents() {
     emailCancel.addEventListener("click", closeEmailModal);
     btnDeleteComplaint.addEventListener("click", handleDeleteComplaint);
     adminComplaintsTbody.addEventListener("click", event => {
+        const viewButton = event.target.closest("[data-view-complaint]");
+        if (viewButton) {
+            openViewComplaint(viewButton.dataset.viewComplaint);
+            return;
+        }
         const emailButton = event.target.closest("[data-email-complaint]");
         if (emailButton) {
             openEmailModal(emailButton.dataset.emailComplaint);
@@ -153,12 +164,23 @@ function initEvents() {
         if (!button) return;
         deleteComplaint(button.dataset.deleteComplaint, false, button);
     });
+    viewComplaintClose.addEventListener("click", closeViewComplaint);
+    viewComplaintDismiss.addEventListener("click", closeViewComplaint);
+    viewComplaintUpdate.addEventListener("click", () => {
+        const complaintId = viewComplaintModal.dataset.complaintId;
+        closeViewComplaint();
+        window.openStatusModal(Number(complaintId));
+    });
+    viewComplaintModal.addEventListener("click", event => {
+        if (event.target === viewComplaintModal) closeViewComplaint();
+    });
     emailModal.addEventListener("click", event => {
         if (event.target === emailModal) closeEmailModal();
     });
     document.addEventListener("keydown", event => {
-        if (event.key === "Escape" && emailModal.style.display === "flex") {
-            closeEmailModal();
+        if (event.key === "Escape") {
+            if (viewComplaintModal.style.display === "flex") closeViewComplaint();
+            if (emailModal.style.display === "flex") closeEmailModal();
         }
     });
 
@@ -452,7 +474,7 @@ function renderAdminComplaints(complaints) {
     if (!complaints.length) {
         adminComplaintsTbody.innerHTML = `
             <tr>
-                <td colspan="10" class="empty-state">
+                <td colspan="11" class="empty-state">
                     <div class="empty-state-icon">🔍</div>
                     <p>No complaints match your current filter criteria.</p>
                 </td>
@@ -479,8 +501,61 @@ function renderAdminComplaints(complaints) {
                 <span class="priority-badge priority-${c.priority.toLowerCase()}">${c.priority}</span>
             </td>
             <td data-label="Complaint Details">${escapeHtml(c.description)}</td>
+            <td data-label="Actions">
+                <div class="admin-complaint-actions">
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-view-complaint="${c.id}">View Complaints</button>
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-email-complaint="${c.id}">Email</button>
+                    <button class="btn btn-outline-danger btn-sm" type="button" data-delete-complaint="${c.id}">Delete</button>
+                </div>
+            </td>
         </tr>
     `).join("");
+}
+
+function openViewComplaint(complaintId) {
+    const complaint = state.adminComplaints.find(item => String(item.id) === String(complaintId));
+    if (!complaint) {
+        showToast("Complaint not found. Refresh the list and try again.", "error");
+        return;
+    }
+
+    const details = [
+        ["Complaint ID", complaint.id],
+        ["Complaint Date", formatComplaintDate(complaint.complaint_date)],
+        ["Student Name", complaint.student_name],
+        ["Student Roll Number", complaint.student_roll],
+        ["Student Email", complaint.student_email || "Not available"],
+        ["Department", complaint.department || "Not specified"],
+        ["Lab Name", complaint.lab_name],
+        ["Lab Location", complaint.lab_location || "Not specified"],
+        ["System Number", complaint.system_no],
+        ["Issue", complaint.issue_type],
+        ["Priority", complaint.priority],
+        ["Description", complaint.description],
+        ["Status", complaint.status],
+        ["Assigned Technician", complaint.assigned_technician || "Not assigned"],
+        ["Repair Action", complaint.repair_action || "None"],
+        ["Admin Remarks", complaint.admin_remarks || "None"],
+        ["Rectified Date", complaint.rectified_date || "Not rectified"]
+    ];
+
+    viewComplaintTitle.textContent = `Complaint #${complaint.id}`;
+    viewComplaintContent.innerHTML = `
+        <dl class="complaint-detail-list">
+            ${details.map(([label, value]) => `
+                <div>
+                    <dt>${escapeHtml(String(label))}</dt>
+                    <dd>${escapeHtml(String(value ?? ""))}</dd>
+                </div>
+            `).join("")}
+        </dl>
+    `;
+    viewComplaintModal.dataset.complaintId = String(complaint.id);
+    viewComplaintModal.style.display = "flex";
+}
+
+function closeViewComplaint() {
+    viewComplaintModal.style.display = "none";
 }
 
 // ================= ADMIN STATUS MODAL =================
@@ -508,13 +583,22 @@ function openEmailModal(complaintId = null) {
     const complaint = complaintId
         ? state.adminComplaints.find(item => String(item.id) === String(complaintId))
         : null;
+    if (complaintId !== null && !complaint) {
+        showToast("Complaint not found. Refresh the list and try again.", "error");
+        return;
+    }
+    if (complaint && !complaint.student_email) {
+        showToast("This complaint has no registered student email address.", "error");
+        return;
+    }
 
     emailComposeForm.reset();
     emailSendStatus.textContent = "";
     emailSendStatus.className = "email-send-status";
+    emailRecipient.readOnly = Boolean(complaint);
 
     if (complaint) {
-        emailRecipient.value = complaint.student_email || "";
+        emailRecipient.value = complaint.student_email;
         emailSubject.value = `Update regarding complaint #${complaint.id}`;
         emailMessage.value = [
             `Dear ${complaint.student_name || "Student"},`,
