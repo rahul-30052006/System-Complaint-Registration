@@ -60,6 +60,16 @@ body.backend-page::before {
     background: rgb(15 23 42 / 0.08);
 }
 
+body.student-auth-page {
+    background-image:
+        linear-gradient(rgb(15 23 42 / 0.16), rgb(15 23 42 / 0.16)),
+        url("../images/student-login-background.webp");
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+}
+
 body::before {
     content: "";
     position: fixed;
@@ -67,6 +77,10 @@ body::before {
     z-index: 1;
     pointer-events: none;
     background: linear-gradient(115deg, rgb(255 255 255 / 0.18), rgb(239 246 255 / 0.12) 55%, rgb(255 255 255 / 0.2));
+}
+
+body.student-auth-page::before {
+    background: rgb(15 23 42 / 0.08);
 }
 
 body.dashboard-mode {
