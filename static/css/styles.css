@@ -70,6 +70,16 @@ body.student-auth-page {
     min-height: 100vh;
 }
 
+body.student-auth-page.student-signin-page {
+    background-image:
+        linear-gradient(rgb(15 23 42 / 0.18), rgb(15 23 42 / 0.18)),
+        url("../images/student-signin-background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+}
+
 body::before {
     content: "";
     position: fixed;
