@@ -497,10 +497,10 @@ function renderAdminComplaints(complaints) {
             <td data-label="Issue">
                 <strong>${escapeHtml(c.issue_type)}</strong>
             </td>
-            <td data-label="Priority">
+            <td class="priority-cell" data-label="Priority">
                 <span class="priority-badge priority-${c.priority.toLowerCase()}">${c.priority}</span>
             </td>
-            <td data-label="Complaint Details">${escapeHtml(c.description)}</td>
+            <td class="complaint-details-cell" data-label="Complaint Details">${escapeHtml(c.description)}</td>
             <td data-label="Actions">
                 <div class="admin-complaint-actions">
                     <button class="btn btn-outline-primary btn-sm" type="button" data-view-complaint="${c.id}">View Complaints</button>
