@@ -119,6 +119,38 @@ http://127.0.0.1:8001/student-login
 
 After signing in, users are taken to the role-appropriate dashboard at `/dashboard`. FastAPI's interactive API documentation is available at `/docs`.
 
+### Troubleshooting student sign-in and registration
+
+Start FastAPI from the project root in a terminal to keep Uvicorn access and
+error logs visible:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+uvicorn main:app --reload --port 8001 --log-level debug --access-log --no-use-colors
+```
+
+The application initializes its SQLite schema when `main.py` imports
+`database.py`; the database path is anchored to the project directory, not the
+current shell directory. A SQLite error in either authentication route is
+logged with a traceback by the application. Look for Uvicorn's ASGI error
+traceback and its final exception line; do not share passwords, tokens, or
+other secrets with the traceback.
+
+Use the automated auth API tests to exercise successful registration and
+login, duplicate accounts, invalid fields, and incorrect passwords against a
+temporary test database without adding test accounts to `complaints.db`:
+
+```powershell
+python -m unittest discover -s tests -p "test_auth.py" -v
+```
+
+Expected results are HTTP 201 for a valid signup, HTTP 200 for a valid username
+or email login, HTTP 400 for duplicate signup, HTTP 401 for invalid
+credentials, and HTTP 422 for malformed signup input. If a real request still
+returns HTTP 500, reproduce it with the logging command above and inspect the
+server terminal for the SQLite/Python exception; the response intentionally
+does not expose traceback details to the browser.
+
 ## Configuration and deployment
 
 - The SQLite database is stored locally in `complaints.db`; back it up before replacing or removing it.

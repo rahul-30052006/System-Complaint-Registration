@@ -6,6 +6,7 @@ import database
 import main
 from auth import verify_access_token, verify_password
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from main import LoginRequest, RegisterRequest
 
 
@@ -15,8 +16,10 @@ class AuthenticationFlowTests(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         database.DB_PATH = os.path.join(self.temp_dir.name, "test_complaints.db")
         database.init_db()
+        self.client = TestClient(main.app)
 
     def tearDown(self):
+        self.client.close()
         database.DB_PATH = self.original_db_path
         self.temp_dir.cleanup()
 
@@ -161,6 +164,79 @@ class AuthenticationFlowTests(unittest.TestCase):
         result = main.login(LoginRequest(login_id="admin@example.com", password="AdminPassword!"))
 
         self.assertEqual(result["user"]["role"], "admin")
+
+    def test_auth_api_registers_then_accepts_username_roll_number_and_email(self):
+        registered = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "roll-2026",
+                "full_name": "API Test Student",
+                "email": "api.test@example.com",
+                "password": "StrongTestPassword!",
+            },
+        )
+        self.assertEqual(registered.status_code, 201)
+        self.assertNotIn("password", registered.json())
+        self.assertNotIn("password_hash", registered.json())
+
+        for identifier in ("roll-2026", "API.TEST@EXAMPLE.COM"):
+            with self.subTest(identifier=identifier):
+                response = self.client.post(
+                    "/api/auth/login",
+                    json={
+                        "login_id": identifier,
+                        "password": "StrongTestPassword!",
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["user"]["username"], "roll-2026")
+
+    def test_auth_api_returns_client_errors_for_invalid_and_duplicate_signup(self):
+        invalid = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "x",
+                "email": "not-an-email",
+                "password": "a",
+            },
+        )
+        self.assertEqual(invalid.status_code, 422)
+
+        self.register_student(username="roll-duplicate", email="duplicate@example.com")
+        duplicate_username = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "ROLL-DUPLICATE",
+                "email": "other@example.com",
+                "password": "StrongTestPassword!",
+            },
+        )
+        duplicate_email = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "another-user",
+                "email": "DUPLICATE@example.com",
+                "password": "StrongTestPassword!",
+            },
+        )
+        self.assertEqual(duplicate_username.status_code, 400)
+        self.assertEqual(duplicate_email.status_code, 400)
+
+    def test_auth_api_returns_401_for_unknown_user_and_wrong_password(self):
+        self.register_student()
+        unknown = self.client.post(
+            "/api/auth/login",
+            json={"login_id": "missing-roll", "password": "WrongPassword123!"},
+        )
+        wrong_password = self.client.post(
+            "/api/auth/login",
+            json={"login_id": "student-01", "password": "WrongPassword123!"},
+        )
+        self.assertEqual(unknown.status_code, 401)
+        self.assertEqual(wrong_password.status_code, 401)
+
+    def test_malformed_stored_password_hash_is_a_failed_verification(self):
+        self.assertFalse(verify_password("password", "not-a-valid-hash"))
 
 
 if __name__ == "__main__":

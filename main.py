@@ -194,7 +194,8 @@ def register_student(req: RegisterRequest):
         cursor.execute("BEGIN IMMEDIATE")
         cursor.execute("""
             SELECT id FROM users
-            WHERE username = ? OR lower(trim(email)) = ?
+            WHERE lower(trim(username)) = lower(trim(?))
+               OR lower(trim(email)) = lower(trim(?))
         """, (username, email))
         if cursor.fetchone():
             conn.rollback()
@@ -218,6 +219,10 @@ def register_student(req: RegisterRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Student with this Roll Number/Username or Email already exists"
         )
+    except sqlite3.Error:
+        conn.rollback()
+        logger.exception("Student registration failed during a SQLite operation")
+        raise
     finally:
         conn.close()
 
@@ -242,13 +247,18 @@ def login(req: LoginRequest):
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute("""
-        SELECT id, username, full_name, email, password_hash, role
-        FROM users
-        WHERE username = ? OR lower(trim(email)) = ?
-    """, (identifier, identifier.lower()))
-    user = cursor.fetchone()
-    conn.close()
+    try:
+        cursor.execute("""
+            SELECT id, username, full_name, email, password_hash, role
+            FROM users
+            WHERE username = ? OR lower(trim(email)) = ?
+        """, (identifier, identifier.lower()))
+        user = cursor.fetchone()
+    except sqlite3.Error:
+        logger.exception("Student/admin sign-in failed during a SQLite operation")
+        raise
+    finally:
+        conn.close()
     
     if not user or not verify_password(req.password, user["password_hash"]):
         raise HTTPException(

@@ -7,7 +7,8 @@ const state = {
     token: localStorage.getItem("token") || null,
     user: JSON.parse(localStorage.getItem("user") || "null"),
     adminComplaints: [],
-    studentComplaints: []
+    studentComplaints: [],
+    authRequestPending: false
 };
 
 // DOM Elements
@@ -205,6 +206,12 @@ async function checkAuth() {
 
 async function handleLogin(e) {
     e.preventDefault();
+    if (state.authRequestPending) return;
+    state.authRequestPending = true;
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    const originalButtonText = submitButton.textContent;
+    submitButton.textContent = "Signing in...";
     const login_id = document.getElementById("login-id").value.trim();
     const password = document.getElementById("login-password").value;
 
@@ -225,11 +232,21 @@ async function handleLogin(e) {
         showDashboardView();
     } catch (err) {
         showToast(err.message || "Login failed. Check your credentials.", "error");
+    } finally {
+        state.authRequestPending = false;
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
     }
 }
 
 async function handleSignup(e) {
     e.preventDefault();
+    if (state.authRequestPending) return;
+    state.authRequestPending = true;
+    const submitButton = signupForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    const originalButtonText = submitButton.textContent;
+    submitButton.textContent = "Creating account...";
     const username = document.getElementById("signup-username").value.trim();
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
@@ -251,6 +268,10 @@ async function handleSignup(e) {
         showDashboardView();
     } catch (err) {
         showToast(err.message || "Registration failed. Try a different username/email.", "error");
+    } finally {
+        state.authRequestPending = false;
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
     }
 }
 
@@ -857,13 +878,29 @@ async function apiRequest(url, method = "GET", body = null) {
         data = await response.json();
     } catch {
         if (!response.ok) {
+            if (url.startsWith("/api/auth/") && response.status >= 500) {
+                throw new Error(
+                    "The server could not complete your sign-in or registration. Please try again; if it continues, check the backend terminal log."
+                );
+            }
             throw new Error(`Request failed with status ${response.status}.`);
         }
         throw new Error("The server returned an invalid response.");
     }
 
     if (!response.ok) {
-        throw new Error(data.detail || data.message || "An unexpected error occurred.");
+        const detail = Array.isArray(data.detail)
+            ? data.detail.map(issue => {
+                const field = Array.isArray(issue.loc) ? issue.loc[issue.loc.length - 1] : null;
+                return field ? `${field}: ${issue.msg}` : issue.msg;
+            }).join("; ")
+            : data.detail;
+        if (url.startsWith("/api/auth/") && response.status >= 500) {
+            throw new Error(
+                "The server could not complete your sign-in or registration. Please try again; if it continues, check the backend terminal log."
+            );
+        }
+        throw new Error(detail || data.message || "An unexpected error occurred.");
     }
 
     return data;
@@ -871,9 +908,16 @@ async function apiRequest(url, method = "GET", body = null) {
 
 function showToast(message, type = "info") {
     const container = document.getElementById("toast-container");
+    const duplicate = [...container.querySelectorAll(".toast")].some(
+        toast => toast.dataset.message === message && toast.dataset.type === type
+    );
+    if (duplicate) return;
+
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
+    toast.dataset.message = message;
+    toast.dataset.type = type;
 
     container.appendChild(toast);
 

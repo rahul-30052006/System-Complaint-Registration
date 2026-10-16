@@ -33,7 +33,7 @@ def verify_password(password: str, stored_hash: str) -> bool:
             100000
         )
         return hmac.compare_digest(new_key.hex(), key_hex)
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
         return False
 
 def create_access_token(data: dict) -> str:
