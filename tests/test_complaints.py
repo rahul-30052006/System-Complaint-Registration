@@ -1,4 +1,5 @@
 import os
+import smtplib
 import sqlite3
 import tempfile
 import unittest
@@ -77,20 +78,47 @@ class ComplaintWorkflowTests(unittest.TestCase):
         self.assertEqual(complaint["status"], "Pending")
         self.assertEqual(complaint["created_at"][:10], datetime.now().strftime("%Y-%m-%d"))
 
-        with patch.object(main, "send_resolution_email") as send_email:
+        with (
+            patch.object(main, "send_assignment_email") as send_assignment_email,
+            patch.object(main, "send_resolution_email") as send_email,
+        ):
             in_progress = self.client.patch(
                 f"/api/admin/complaints/{complaint['id']}",
                 headers=self.admin_headers,
                 json={
                     "status": "In Progress",
                     "assigned_technician": "Jordan Technician",
+                    "technician_contact": "555-0142",
+                    "service_visit_at": "2026-10-20T10:30",
                     "repair_action": "Inspected the power supply.",
                     "admin_remarks": "Replacement part requested.",
                 },
             )
             self.assertEqual(in_progress.status_code, 200)
             self.assertIsNone(in_progress.json()["complaint"]["rectified_date"])
-            self.assertEqual(in_progress.json()["email_notification"], "not_triggered")
+            self.assertEqual(in_progress.json()["email_notification"], "sent")
+            self.assertEqual(in_progress.json()["notification_type"], "assignment")
+            send_assignment_email.assert_called_once()
+            assignment = send_assignment_email.call_args.args[0]
+            self.assertEqual(assignment["student_email"], "sam.student@example.com")
+            self.assertEqual(assignment["technician_contact"], "555-0142")
+            self.assertEqual(assignment["service_visit_at"], "2026-10-20T10:30")
+
+            repeated_assignment = self.client.patch(
+                f"/api/admin/complaints/{complaint['id']}",
+                headers=self.admin_headers,
+                json={
+                    "status": "In Progress",
+                    "assigned_technician": "Jordan Technician",
+                    "technician_contact": "555-0142",
+                    "service_visit_at": "2026-10-20T10:30",
+                    "repair_action": "Inspected the power supply.",
+                    "admin_remarks": "Replacement part requested.",
+                },
+            )
+            self.assertEqual(repeated_assignment.status_code, 200)
+            self.assertEqual(repeated_assignment.json()["email_notification"], "not_triggered")
+            send_assignment_email.assert_called_once()
 
             resolved = self.client.patch(
                 f"/api/admin/complaints/{complaint['id']}",
@@ -108,6 +136,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
             self.assertEqual(resolved_complaint["assigned_technician"], "Jordan Technician")
             self.assertEqual(resolved_complaint["repair_action"], "Replaced the power supply and tested the system.")
             self.assertEqual(resolved.json()["email_notification"], "sent")
+            self.assertEqual(resolved.json()["notification_type"], "resolution")
             send_email.assert_called_once()
             emailed = send_email.call_args.args[0]
             self.assertEqual(emailed["student_email"], "sam.student@example.com")
@@ -134,9 +163,102 @@ class ComplaintWorkflowTests(unittest.TestCase):
         for field in (
             "department", "student_name", "student_roll", "lab_name", "system_no",
             "complaint_date", "assigned_technician", "priority", "status", "rectified_date",
-            "repair_action", "admin_remarks",
+            "technician_contact", "service_visit_at", "repair_action", "admin_remarks",
         ):
             self.assertIn(field, admin_ticket)
+
+    def test_technician_assigned_requires_name_and_visit_time_and_is_admin_only(self):
+        complaint_response = self.client.post(
+            "/api/complaints",
+            headers=self.student_headers,
+            json={
+                "complaint_date": "2026-10-16",
+                "lab_name": "UG Lab",
+                "lab_location": "Block A",
+                "system_no": "PC-19",
+                "issue_type": "Hardware",
+                "description": "The computer is not starting.",
+            },
+        )
+        complaint_id = complaint_response.json()["complaint"]["id"]
+        payload = {
+            "status": "Technician Assigned",
+            "assigned_technician": "Jordan Technician",
+        }
+
+        missing_visit = self.client.patch(
+            f"/api/admin/complaints/{complaint_id}",
+            headers=self.admin_headers,
+            json=payload,
+        )
+        self.assertEqual(missing_visit.status_code, 400)
+
+        forbidden = self.client.patch(
+            f"/api/admin/complaints/{complaint_id}",
+            headers=self.student_headers,
+            json={**payload, "service_visit_at": "2026-10-20T10:30"},
+        )
+        self.assertEqual(forbidden.status_code, 403)
+
+        with patch.object(main, "send_assignment_email") as send_assignment_email:
+            assigned = self.client.patch(
+                f"/api/admin/complaints/{complaint_id}",
+                headers=self.admin_headers,
+                json={**payload, "service_visit_at": "2026-10-20T10:30"},
+            )
+            self.assertEqual(assigned.status_code, 200)
+            self.assertEqual(assigned.json()["email_notification"], "sent")
+            self.assertEqual(
+                assigned.json()["complaint"]["service_visit_at"],
+                "2026-10-20T10:30",
+            )
+            send_assignment_email.assert_called_once()
+
+            repeated = self.client.patch(
+                f"/api/admin/complaints/{complaint_id}",
+                headers=self.admin_headers,
+                json={**payload, "service_visit_at": "2026-10-20T10:30"},
+            )
+            self.assertEqual(repeated.status_code, 200)
+            self.assertEqual(repeated.json()["email_notification"], "not_triggered")
+            send_assignment_email.assert_called_once()
+
+    def test_assignment_email_failure_does_not_undo_saved_complaint(self):
+        complaint_response = self.client.post(
+            "/api/complaints",
+            headers=self.student_headers,
+            json={
+                "complaint_date": "2026-10-16",
+                "lab_name": "UG Lab",
+                "lab_location": "Block A",
+                "system_no": "PC-20",
+                "issue_type": "Hardware",
+                "description": "The screen remains blank.",
+            },
+        )
+        complaint_id = complaint_response.json()["complaint"]["id"]
+
+        with patch.object(
+            main,
+            "send_assignment_email",
+            side_effect=smtplib.SMTPAuthenticationError(535, b"Rejected"),
+        ):
+            response = self.client.patch(
+                f"/api/admin/complaints/{complaint_id}",
+                headers=self.admin_headers,
+                json={
+                    "status": "In Progress",
+                    "assigned_technician": "Jordan Technician",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["email_notification"], "failed")
+        self.assertIn("Rejected", response.json()["email_error"])
+        self.assertEqual(
+            response.json()["complaint"]["assigned_technician"],
+            "Jordan Technician",
+        )
 
     def test_complaint_email_uses_registered_student_email(self):
         complaint_response = self.client.post(
@@ -405,6 +527,8 @@ class ComplaintWorkflowTests(unittest.TestCase):
             self.assertEqual(complaint["rectified_date"], "2025-01-03")
             self.assertEqual(complaint["complaint_date"], "2025-01-02")
             self.assertEqual(complaint["department"], "")
+            self.assertEqual(complaint["technician_contact"], "")
+            self.assertIsNone(complaint["service_visit_at"])
             conn.close()
         finally:
             database.DB_PATH = current_db_path

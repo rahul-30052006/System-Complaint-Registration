@@ -43,6 +43,8 @@ def init_db():
         description TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'Pending',
         assigned_technician TEXT NOT NULL DEFAULT '',
+        technician_contact TEXT NOT NULL DEFAULT '',
+        service_visit_at TEXT,
         repair_action TEXT NOT NULL DEFAULT '',
         admin_remarks TEXT DEFAULT '',
         rectified_date TEXT,
@@ -60,6 +62,8 @@ def init_db():
         "lab_location": "TEXT NOT NULL DEFAULT ''",
         "department": "TEXT NOT NULL DEFAULT ''",
         "assigned_technician": "TEXT NOT NULL DEFAULT ''",
+        "technician_contact": "TEXT NOT NULL DEFAULT ''",
+        "service_visit_at": "TEXT",
         "repair_action": "TEXT NOT NULL DEFAULT ''",
         "rectified_date": "TEXT",
     }

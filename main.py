@@ -8,10 +8,10 @@ from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, TypeAdapter, ValidationError, field_validator
 
 from database import get_db, init_db
-from email_service import send_custom_email, send_resolution_email
+from email_service import send_assignment_email, send_custom_email, send_resolution_email
 from auth import (
     hash_password,
     verify_password,
@@ -22,6 +22,7 @@ from auth import (
 )
 
 logger = logging.getLogger(__name__)
+EMAIL_VALIDATOR = TypeAdapter(EmailStr)
 
 # Keep these confirmed demo records in SQLite, but out of admin dashboard views.
 ADMIN_HIDDEN_COMPLAINTS = (
@@ -65,7 +66,7 @@ app.add_middleware(
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="Roll Number or Username")
     full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
-    email: str = Field(..., max_length=100)
+    email: EmailStr = Field(..., max_length=100)
     password: str = Field(..., min_length=4, max_length=100)
 
 class LoginRequest(BaseModel):
@@ -83,8 +84,10 @@ class ComplaintCreate(BaseModel):
     description: str = Field(..., min_length=5, max_length=1000)
 
 class ComplaintStatusUpdate(BaseModel):
-    status: str = Field(..., pattern="^(Pending|In Progress|Resolved|Rejected)$")
+    status: str = Field(..., pattern="^(Pending|In Progress|Technician Assigned|Resolved|Rejected)$")
     assigned_technician: Optional[str] = Field(default=None, max_length=100)
+    technician_contact: Optional[str] = Field(default=None, max_length=200)
+    service_visit_at: Optional[datetime] = None
     repair_action: Optional[str] = Field(default=None, max_length=2000)
     admin_remarks: Optional[str] = Field(default=None, max_length=1000)
 
@@ -111,13 +114,13 @@ class ComplaintEmailRequest(EmailContentRequest):
 
 
 @app.post("/send-email")
-def send_email(data: EmailRequest):
+def send_email(data: EmailRequest, admin: dict = Depends(require_admin)):
     try:
         send_custom_email(str(data.to_email), data.subject, data.message)
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="SMTP_EMAIL and SMTP_PASSWORD environment variables must be set.",
+            detail="GMAIL_ADDRESS and GMAIL_APP_PASSWORD environment variables must be set.",
         ) from exc
     except (smtplib.SMTPException, OSError) as exc:
         logger.exception("SMTP email send failed")
@@ -153,13 +156,20 @@ def send_complaint_email(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The student does not have a registered email address.",
         )
+    try:
+        recipient = str(EMAIL_VALIDATOR.validate_python(complaint["student_email"]))
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The student's registered email address is invalid.",
+        ) from exc
 
     try:
-        send_custom_email(complaint["student_email"], data.subject, data.message)
+        send_custom_email(recipient, data.subject, data.message)
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="SMTP_EMAIL and SMTP_PASSWORD environment variables must be set.",
+            detail="GMAIL_ADDRESS and GMAIL_APP_PASSWORD environment variables must be set.",
         ) from exc
     except (smtplib.SMTPException, OSError) as exc:
         logger.exception("SMTP email send failed for complaint #%s", complaint_id)
@@ -420,7 +430,8 @@ def get_admin_stats(admin: dict = Depends(require_admin)):
     pending = cursor.fetchone()["count"]
 
     cursor.execute(
-        f"SELECT COUNT(*) as count FROM complaints c WHERE {visibility_filter} AND c.status = 'In Progress'",
+        f"SELECT COUNT(*) as count FROM complaints c WHERE {visibility_filter} "
+        "AND c.status IN ('In Progress', 'Technician Assigned')",
         hidden_params,
     )
     in_progress = cursor.fetchone()["count"]
@@ -485,22 +496,23 @@ def update_complaint_status(
         if not existing_complaint:
             raise HTTPException(status_code=404, detail="Complaint not found")
 
-        should_notify = (
-            update_data.status == "Resolved"
-            and existing_complaint["status"] != "Resolved"
-        )
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if update_data.status == "Resolved":
-            rectified_date = existing_complaint["rectified_date"]
-            if existing_complaint["status"] != "Resolved" or not rectified_date:
-                rectified_date = now[:10]
-        else:
-            rectified_date = None
-
         assigned_technician = (
             update_data.assigned_technician
             if update_data.assigned_technician is not None
             else existing_complaint["assigned_technician"]
+        )
+        technician_contact = (
+            update_data.technician_contact
+            if "technician_contact" in update_data.model_fields_set
+            else existing_complaint["technician_contact"]
+        )
+        service_visit_at = (
+            update_data.service_visit_at.isoformat(timespec="minutes")
+            if update_data.service_visit_at is not None
+            else (
+                None if "service_visit_at" in update_data.model_fields_set
+                else existing_complaint["service_visit_at"]
+            )
         )
         repair_action = (
             update_data.repair_action
@@ -512,17 +524,57 @@ def update_complaint_status(
             if update_data.admin_remarks is not None
             else existing_complaint["admin_remarks"]
         )
+        assigned_technician = (assigned_technician or "").strip()
+        technician_contact = (technician_contact or "").strip()
+        repair_action = (repair_action or "").strip()
+        admin_remarks = (admin_remarks or "").strip()
+
+        if update_data.status == "Technician Assigned" and (
+            not assigned_technician or not service_visit_at
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A technician name and scheduled service visit date/time are required for Technician Assigned status.",
+            )
+
+        should_notify_resolution = (
+            update_data.status == "Resolved"
+            and existing_complaint["status"] != "Resolved"
+        )
+        assignment_changed = any((
+            assigned_technician != (existing_complaint["assigned_technician"] or ""),
+            technician_contact != (existing_complaint["technician_contact"] or ""),
+            service_visit_at != existing_complaint["service_visit_at"],
+            repair_action != (existing_complaint["repair_action"] or ""),
+            admin_remarks != (existing_complaint["admin_remarks"] or ""),
+        ))
+        should_notify_assignment = (
+            not should_notify_resolution
+            and bool(assigned_technician)
+            and assignment_changed
+        )
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if update_data.status == "Resolved":
+            rectified_date = existing_complaint["rectified_date"]
+            if existing_complaint["status"] != "Resolved" or not rectified_date:
+                rectified_date = now[:10]
+        else:
+            rectified_date = None
 
         cursor.execute("""
             UPDATE complaints
-            SET status = ?, assigned_technician = ?, repair_action = ?,
+            SET status = ?, assigned_technician = ?, technician_contact = ?,
+                service_visit_at = ?, repair_action = ?,
                 admin_remarks = ?, rectified_date = ?, updated_at = ?
             WHERE id = ?
         """, (
             update_data.status,
-            (assigned_technician or "").strip(),
-            (repair_action or "").strip(),
-            (admin_remarks or "").strip(),
+            assigned_technician,
+            technician_contact,
+            service_visit_at,
+            repair_action,
+            admin_remarks,
             rectified_date,
             now,
             complaint_id,
@@ -536,21 +588,39 @@ def update_complaint_status(
         conn.close()
 
     email_notification = "not_triggered"
-    if should_notify:
+    email_error = None
+    notification_type = None
+    if should_notify_resolution or should_notify_assignment:
+        notification_type = "resolution" if should_notify_resolution else "assignment"
         try:
-            send_resolution_email({
-                **updated_complaint,
-                "student_email": student_email
-            })
+            recipient = str(EMAIL_VALIDATOR.validate_python(student_email))
+            notification_data = {**updated_complaint, "student_email": recipient}
+            if should_notify_resolution:
+                send_resolution_email(notification_data)
+            else:
+                send_assignment_email(notification_data)
             email_notification = "sent"
-        except Exception:
-            logger.exception("Resolution email failed for complaint #%s", complaint_id)
+        except ValidationError:
+            logger.error("Invalid registered email for complaint #%s", complaint_id)
+            email_error = "The student's registered email address is invalid."
+            email_notification = "failed"
+        except (RuntimeError, smtplib.SMTPException, OSError) as exc:
+            logger.exception("Complaint notification failed for complaint #%s", complaint_id)
+            email_error = str(exc)
             email_notification = "failed"
 
+    response_message = "Complaint updated successfully"
+    if email_notification == "failed":
+        response_message += f", but the {notification_type} email was not sent."
+    elif email_notification == "sent":
+        response_message += f" and the {notification_type} email was sent."
+
     return {
-        "message": "Complaint updated successfully",
+        "message": response_message,
         "complaint": updated_complaint,
-        "email_notification": email_notification
+        "email_notification": email_notification,
+        "notification_type": notification_type,
+        "email_error": email_error,
     }
 
 @app.delete("/api/admin/complaints/{complaint_id}")

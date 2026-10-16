@@ -53,25 +53,14 @@ const viewComplaintContent = document.getElementById("view-complaint-content");
 const viewComplaintClose = document.getElementById("view-complaint-close");
 const viewComplaintDismiss = document.getElementById("view-complaint-dismiss");
 const viewComplaintUpdate = document.getElementById("view-complaint-update");
+const viewComplaintEmail = document.getElementById("view-complaint-email");
+const btnDeleteComplaint = document.getElementById("btn-delete-complaint");
 const adminSearch = document.getElementById("admin-search");
 const adminFilterLab = document.getElementById("admin-filter-lab");
 const adminFilterStatus = document.getElementById("admin-filter-status");
 const btnRefreshAdmin = document.getElementById("btn-refresh-admin");
 const btnSendEmail = document.getElementById("btn-send-email");
 
-// Modal Elements
-const statusModal = document.getElementById("status-modal");
-const modalClose = document.getElementById("modal-close");
-const btnCancelModal = document.getElementById("btn-cancel-modal");
-const modalStatusForm = document.getElementById("modal-status-form");
-const modalTitle = document.getElementById("modal-title");
-const modalSummary = document.getElementById("modal-summary");
-const modalComplaintId = document.getElementById("modal-complaint-id");
-const modalStatusSelect = document.getElementById("modal-status-select");
-const modalAssignedTechnician = document.getElementById("modal-assigned-technician");
-const modalRepairAction = document.getElementById("modal-repair-action");
-const modalAdminRemarks = document.getElementById("modal-admin-remarks");
-const btnDeleteComplaint = document.getElementById("btn-delete-complaint");
 const emailModal = document.getElementById("email-modal");
 const emailComposeForm = document.getElementById("email-compose-form");
 const emailModalClose = document.getElementById("email-modal-close");
@@ -125,7 +114,9 @@ function initEvents() {
         customLabName.disabled = true;
         customLabName.value = "";
     });
-    modalStatusForm.addEventListener("submit", handleUpdateStatus);
+    viewComplaintContent.addEventListener("submit", event => {
+        if (event.target.id === "complaint-update-form") handleUpdateStatus(event);
+    });
     emailComposeForm.addEventListener("submit", handleSendEmail);
 
     // Logout
@@ -146,8 +137,6 @@ function initEvents() {
     adminFilterStatus.addEventListener("change", loadAdminComplaints);
 
     // Modal controls
-    modalClose.addEventListener("click", closeModal);
-    btnCancelModal.addEventListener("click", closeModal);
     emailModalClose.addEventListener("click", closeEmailModal);
     emailCancel.addEventListener("click", closeEmailModal);
     btnDeleteComplaint.addEventListener("click", handleDeleteComplaint);
@@ -169,15 +158,15 @@ function initEvents() {
     viewComplaintClose.addEventListener("click", closeViewComplaint);
     viewComplaintDismiss.addEventListener("click", closeViewComplaint);
     viewComplaintUpdate.addEventListener("click", () => {
-        const complaintId = viewComplaintModal.dataset.complaintId;
-        closeViewComplaint();
-        window.openStatusModal(Number(complaintId));
+        const assignmentForm = document.getElementById("complaint-update-form");
+        assignmentForm.scrollIntoView({ behavior: "smooth", block: "start" });
+        assignmentForm.querySelector("#update-status").focus({ preventScroll: true });
+    });
+    viewComplaintEmail.addEventListener("click", () => {
+        openEmailModal(viewComplaintModal.dataset.complaintId);
     });
     viewComplaintModal.addEventListener("click", event => {
         if (event.target === viewComplaintModal) closeViewComplaint();
-    });
-    statusModal.addEventListener("click", event => {
-        if (event.target === statusModal) closeModal();
     });
     emailModal.addEventListener("click", event => {
         if (event.target === emailModal) closeEmailModal();
@@ -185,7 +174,6 @@ function initEvents() {
     document.addEventListener("keydown", event => {
         if (event.key === "Escape") {
             if (viewComplaintModal.style.display === "flex") closeViewComplaint();
-            if (statusModal.style.display === "flex") closeModal();
             if (emailModal.style.display === "flex") closeEmailModal();
         }
     });
@@ -424,6 +412,8 @@ function renderStudentComplaints(complaints) {
             </div>
 
             ${c.assigned_technician ? `<div class="complaint-remarks"><strong>Assigned Technician:</strong> ${escapeHtml(c.assigned_technician)}</div>` : ''}
+            ${c.technician_contact ? `<div class="complaint-remarks"><strong>Technician Contact:</strong> ${escapeHtml(c.technician_contact)}</div>` : ''}
+            ${c.service_visit_at ? `<div class="complaint-remarks"><strong>Scheduled Service Visit:</strong> ${escapeHtml(formatServiceVisit(c.service_visit_at))}</div>` : ''}
             ${c.repair_action ? `<div class="complaint-remarks"><strong>Repair Action:</strong> ${escapeHtml(c.repair_action)}</div>` : ''}
             ${c.admin_remarks ? `
                 <div class="complaint-remarks">
@@ -566,6 +556,8 @@ function openViewComplaint(complaintId) {
             title: "Resolution Information",
             fields: [
                 field("Assigned Technician", value(complaint.assigned_technician, "Not assigned")),
+                field("Technician Contact", value(complaint.technician_contact, "Not provided")),
+                field("Expected Service Date", value(formatServiceVisit(complaint.service_visit_at))),
                 field("Repair Action Taken", value(complaint.repair_action, "None")),
                 field("Admin Remarks", value(complaint.admin_remarks, "None"), "complaint-detail-item-wide"),
                 field("Rectified Date", value(complaint.rectified_date, "Not rectified"))
@@ -592,8 +584,49 @@ function openViewComplaint(complaintId) {
                     <dl class="complaint-detail-list">${section.fields.join("")}</dl>
                 </section>
             `).join("")}
+            <section class="complaint-assignment-panel" aria-labelledby="assignment-heading">
+                <div class="assignment-panel-heading">
+                    <h4 id="assignment-heading">Assign Service Technician</h4>
+                    <p>Save service details and notify the student at their registered email when assignment details change.</p>
+                </div>
+                <form id="complaint-update-form" class="complaint-update-form">
+                    <div class="service-form-grid">
+                        <div class="form-group">
+                            <label for="update-technician">Technician name</label>
+                            <input id="update-technician" type="text" maxlength="100" value="${escapeHtml(complaint.assigned_technician || "")}" placeholder="Name of assigned technician">
+                        </div>
+                        <div class="form-group">
+                            <label for="update-technician-contact">Technician contact details</label>
+                            <input id="update-technician-contact" type="text" maxlength="200" value="${escapeHtml(complaint.technician_contact || "")}" placeholder="Phone number or email, if available">
+                        </div>
+                        <div class="form-group">
+                            <label for="update-service-visit">Service visit date and time</label>
+                            <input id="update-service-visit" type="datetime-local" value="${escapeHtml(String(complaint.service_visit_at || "").replace(" ", "T").slice(0, 16))}">
+                        </div>
+                        <div class="form-group">
+                            <label for="update-status">Complaint status</label>
+                            <select id="update-status" required>
+                                ${["Pending", "In Progress", "Technician Assigned", "Resolved", "Rejected"].map(status => `
+                                    <option value="${status}" ${complaint.status === status ? "selected" : ""}>${status}</option>
+                                `).join("")}
+                            </select>
+                        </div>
+                        <div class="form-group service-form-wide">
+                            <label for="update-repair-action">Repair action or service instructions</label>
+                            <textarea id="update-repair-action" rows="3" maxlength="2000" placeholder="Repair action taken or instructions for the service visit">${escapeHtml(complaint.repair_action || "")}</textarea>
+                        </div>
+                        <div class="form-group service-form-wide">
+                            <label for="update-admin-remarks">Admin remarks and contact instructions</label>
+                            <textarea id="update-admin-remarks" rows="3" maxlength="1000" placeholder="Add updates or instructions for the student">${escapeHtml(complaint.admin_remarks || "")}</textarea>
+                        </div>
+                    </div>
+                    <p id="complaint-update-status" class="complaint-update-status" role="status" aria-live="polite"></p>
+                    <button id="complaint-update-submit" type="submit" class="btn btn-primary modal-action-btn">Save / Update Complaint</button>
+                </form>
+            </section>
         </div>
     `;
+    btnDeleteComplaint.dataset.complaintId = String(complaint.id);
     viewComplaintModal.dataset.complaintId = String(complaint.id);
     viewComplaintModal.style.display = "flex";
     syncModalScrollLock();
@@ -603,50 +636,6 @@ function closeViewComplaint() {
     viewComplaintModal.style.display = "none";
     syncModalScrollLock();
 }
-
-// ================= ADMIN STATUS MODAL =================
-window.openStatusModal = function(complaintId) {
-    const complaint = state.adminComplaints.find(c => c.id === complaintId);
-    if (!complaint) return;
-
-    modalComplaintId.value = complaint.id;
-    modalTitle.textContent = `Update Ticket #${complaint.id} (${complaint.system_no})`;
-    modalStatusSelect.value = complaint.status;
-    modalAssignedTechnician.value = complaint.assigned_technician || "";
-    modalRepairAction.value = complaint.repair_action || "";
-    modalAdminRemarks.value = complaint.admin_remarks || "";
-    modalTitle.textContent = `Update Complaint #${complaint.id}`;
-
-    modalSummary.innerHTML = `
-        <div class="modal-summary-item">
-            <span>Student</span>
-            <strong>${escapeHtml(complaint.student_name || "Not provided")}</strong>
-        </div>
-        <div class="modal-summary-item">
-            <span>Roll Number</span>
-            <strong>${escapeHtml(complaint.student_roll || "Not provided")}</strong>
-        </div>
-        <div class="modal-summary-item">
-            <span>Lab</span>
-            <strong>${escapeHtml(complaint.lab_name || "Not provided")}</strong>
-        </div>
-        <div class="modal-summary-item">
-            <span>System</span>
-            <strong>${escapeHtml(complaint.system_no || "Not provided")}</strong>
-        </div>
-        <div class="modal-summary-item modal-summary-item-wide">
-            <span>Issue</span>
-            <strong>${escapeHtml(complaint.issue_type || "Not provided")}</strong>
-        </div>
-        <div class="modal-summary-item modal-summary-item-wide">
-            <span>Description</span>
-            <p>${escapeHtml(complaint.description || "No description provided.")}</p>
-        </div>
-    `;
-
-    statusModal.style.display = "flex";
-    syncModalScrollLock();
-};
 
 function openEmailModal(complaintId = null) {
     const complaint = complaintId
@@ -736,44 +725,86 @@ async function handleSendEmail(event) {
     }
 }
 
-function closeModal() {
-    statusModal.style.display = "none";
-    syncModalScrollLock();
-}
-
 function syncModalScrollLock() {
-    const modalOpen = [viewComplaintModal, statusModal, emailModal]
+    const modalOpen = [viewComplaintModal, emailModal]
         .some(modal => modal.style.display === "flex");
     document.body.classList.toggle("modal-open", modalOpen);
 }
 
-async function handleUpdateStatus(e) {
-    e.preventDefault();
-    const id = modalComplaintId.value;
-    const status = modalStatusSelect.value;
-    const admin_remarks = modalAdminRemarks.value.trim();
+async function handleUpdateStatus(event) {
+    event.preventDefault();
+    const complaintId = viewComplaintModal.dataset.complaintId;
+    const currentComplaint = state.adminComplaints.find(
+        complaint => String(complaint.id) === String(complaintId)
+    );
+    const form = event.target;
+    const status = form.querySelector("#update-status").value;
+    const feedback = form.querySelector("#complaint-update-status");
+    const submitButton = form.querySelector("#complaint-update-submit");
 
+    if (!currentComplaint) {
+        feedback.textContent = "Complaint not found. Refresh the dashboard and try again.";
+        feedback.className = "complaint-update-status is-error";
+        return;
+    }
+    if (status === "Resolved" && currentComplaint.status !== "Resolved" &&
+        !confirm("Mark this complaint as Resolved and send the repair-completion email to the student?")) {
+        return;
+    }
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving...";
+    feedback.textContent = "Saving complaint updates...";
+    feedback.className = "complaint-update-status is-loading";
     try {
-        const result = await apiRequest(`/api/admin/complaints/${id}`, "PATCH", {
+        const result = await apiRequest(`/api/admin/complaints/${complaintId}`, "PATCH", {
             status,
-            assigned_technician: modalAssignedTechnician.value.trim(),
-            repair_action: modalRepairAction.value.trim(),
-            admin_remarks
+            assigned_technician: form.querySelector("#update-technician").value.trim(),
+            technician_contact: form.querySelector("#update-technician-contact").value.trim(),
+            service_visit_at: form.querySelector("#update-service-visit").value || null,
+            repair_action: form.querySelector("#update-repair-action").value.trim(),
+            admin_remarks: form.querySelector("#update-admin-remarks").value.trim()
         });
 
+        state.adminComplaints = state.adminComplaints.map(complaint =>
+            String(complaint.id) === String(complaintId)
+                ? { ...complaint, ...result.complaint }
+                : complaint
+        );
+        renderAdminComplaints(state.adminComplaints);
+        openViewComplaint(complaintId);
+        const updatedFeedback = document.getElementById("complaint-update-status");
         if (result.email_notification === "failed") {
-            showToast(`Complaint #${id} was updated, but the resolution email failed. Check the server configuration and logs.`, "error");
+            const message = `Complaint saved, but the ${result.notification_type} email was not sent: ${result.email_error || "SMTP delivery failed."}`;
+            updatedFeedback.textContent = message;
+            updatedFeedback.className = "complaint-update-status is-error";
+            showToast(message, "error");
+        } else if (result.email_notification === "sent") {
+            const message = `Complaint saved and ${result.notification_type} email sent to the student's registered address.`;
+            updatedFeedback.textContent = message;
+            updatedFeedback.className = "complaint-update-status is-success";
+            showToast(message, "success");
         } else {
-            showToast(`Complaint #${id} updated to ${status}!`, "success");
+            const message = `Complaint #${complaintId} saved successfully. No notification was needed for this unchanged update.`;
+            updatedFeedback.textContent = message;
+            updatedFeedback.className = "complaint-update-status is-success";
+            showToast(message, "success");
         }
-        closeModal();
-        loadAdminData();
+        await loadAdminData();
     } catch (err) {
-        showToast(err.message || "Failed to update complaint.", "error");
+        feedback.textContent = err.message || "Failed to update complaint.";
+        feedback.className = "complaint-update-status is-error";
+        showToast(feedback.textContent, "error");
+    } finally {
+        const activeSubmitButton = document.getElementById("complaint-update-submit");
+        if (activeSubmitButton) {
+            activeSubmitButton.disabled = false;
+            activeSubmitButton.textContent = "Save / Update Complaint";
+        }
     }
 }
 
-async function deleteComplaint(complaintId, closeStatusModal = false, triggerButton = null) {
+async function deleteComplaint(complaintId, closeDetailsModal = false, triggerButton = null) {
     const id = complaintId;
     if (!confirm(`Are you sure you want to permanently delete Complaint #${id}?`)) {
         return;
@@ -789,7 +820,7 @@ async function deleteComplaint(complaintId, closeStatusModal = false, triggerBut
         state.adminComplaints = state.adminComplaints.filter(complaint => String(complaint.id) !== String(id));
         renderAdminComplaints(state.adminComplaints);
         showToast(`Complaint #${id} deleted successfully.`, "info");
-        if (closeStatusModal) closeModal();
+        if (closeDetailsModal) closeViewComplaint();
         await loadAdminData();
     } catch (err) {
         if (triggerButton) {
@@ -801,7 +832,7 @@ async function deleteComplaint(complaintId, closeStatusModal = false, triggerBut
 }
 
 async function handleDeleteComplaint() {
-    return deleteComplaint(modalComplaintId.value, true);
+    return deleteComplaint(viewComplaintModal.dataset.complaintId, true, btnDeleteComplaint);
 }
 
 // ================= API & UTILITY HELPERS =================
@@ -872,6 +903,23 @@ function formatDate(dateStr) {
             day: 'numeric', 
             hour: '2-digit', 
             minute: '2-digit' 
+        });
+    } catch {
+        return dateStr;
+    }
+}
+
+function formatServiceVisit(dateStr) {
+    if (!dateStr) return "Not scheduled";
+    try {
+        const d = new Date(dateStr.replace(" ", "T"));
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
         });
     } catch {
         return dateStr;
