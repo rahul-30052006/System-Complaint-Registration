@@ -48,11 +48,9 @@ body {
 }
 
 body.backend-page {
-    background-image:
-        linear-gradient(rgb(15 23 42 / 0.32), rgb(15 23 42 / 0.32)),
-        url("../assets/admin-login-background.jpg");
+    background-image: url("../images/admin-login-bg.png");
     background-size: cover;
-    background-position: center;
+    background-position: center center;
     background-repeat: no-repeat;
 }
 
