@@ -97,6 +97,18 @@ body.dashboard-mode {
     background-color: #edf4ff;
 }
 
+body.student-dashboard-mode {
+    background-image: url("../assets/student-portal-dashboard-background.webp");
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+body.student-dashboard-mode::before {
+    background: rgb(255 255 255 / 0.14);
+}
+
 #student-section {
     background: transparent;
     border-radius: var(--radius-lg);
@@ -1421,6 +1433,10 @@ body.modal-open {
 }
 
 @media (max-width: 768px) {
+    body.student-dashboard-mode {
+        background-attachment: scroll;
+    }
+
     .auth-wrapper {
         min-height: calc(100vh - 90px);
         padding: 1.25rem 0;
