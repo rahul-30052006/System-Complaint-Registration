@@ -138,6 +138,108 @@ class ComplaintWorkflowTests(unittest.TestCase):
         ):
             self.assertIn(field, admin_ticket)
 
+    def test_complaint_email_uses_registered_student_email(self):
+        complaint_response = self.client.post(
+            "/api/complaints",
+            headers=self.student_headers,
+            json={
+                "complaint_date": "2026-10-16",
+                "lab_name": "UG Lab",
+                "lab_location": "Block A",
+                "system_no": "PC-17",
+                "issue_type": "Hardware",
+                "description": "The keyboard is not working.",
+            },
+        )
+        self.assertEqual(complaint_response.status_code, 201)
+        another_student = main.register_student(RegisterRequest(
+            username="student-18",
+            full_name="Alex Student",
+            email="alex.student@example.com",
+            password="StrongTestPassword!",
+        ))
+        another_student_headers = {
+            "Authorization": f"Bearer {another_student['access_token']}"
+        }
+        selected_response = self.client.post(
+            "/api/complaints",
+            headers=another_student_headers,
+            json={
+                "complaint_date": "2026-10-16",
+                "lab_name": "PG Lab",
+                "lab_location": "Block B",
+                "system_no": "PC-18",
+                "issue_type": "Software",
+                "description": "The required software is not starting.",
+            },
+        )
+        self.assertEqual(selected_response.status_code, 201)
+        complaint_id = selected_response.json()["complaint"]["id"]
+
+        forbidden = self.client.post(
+            f"/api/admin/complaints/{complaint_id}/email",
+            headers=self.student_headers,
+            json={"subject": "Update", "message": "We are reviewing this."},
+        )
+        self.assertEqual(forbidden.status_code, 403)
+
+        with patch.object(main, "send_custom_email") as send_email:
+            response = self.client.post(
+                f"/api/admin/complaints/{complaint_id}/email",
+                headers=self.admin_headers,
+                json={
+                    "subject": f"Complaint #{complaint_id} update",
+                    "message": "We are reviewing your complaint.",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        send_email.assert_called_once_with(
+            "alex.student@example.com",
+            f"Complaint #{complaint_id} update",
+            "We are reviewing your complaint.",
+        )
+
+    def test_delete_complaint_removes_only_selected_complaint(self):
+        complaint_ids = []
+        for system_no in ("PC-17", "PC-18"):
+            response = self.client.post(
+                "/api/complaints",
+                headers=self.student_headers,
+                json={
+                    "complaint_date": "2026-10-16",
+                    "lab_name": "UG Lab",
+                    "lab_location": "Block A",
+                    "system_no": system_no,
+                    "issue_type": "Hardware",
+                    "description": f"Issue reported on {system_no}.",
+                },
+            )
+            self.assertEqual(response.status_code, 201)
+            complaint_ids.append(response.json()["complaint"]["id"])
+
+        deleted_id, retained_id = complaint_ids
+        response = self.client.delete(
+            f"/api/admin/complaints/{deleted_id}",
+            headers=self.admin_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.client.get(
+                "/api/admin/complaints",
+                headers=self.admin_headers,
+            ).json()["complaints"][0]["id"],
+            retained_id,
+        )
+        self.assertEqual(
+            self.client.delete(
+                f"/api/admin/complaints/{deleted_id}",
+                headers=self.admin_headers,
+            ).status_code,
+            404,
+        )
+
     def test_admin_relogin_shows_current_database_complaints_without_confirmed_demo_rows(self):
         conn = database.get_db()
         conn.execute("""

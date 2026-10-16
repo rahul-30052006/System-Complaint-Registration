@@ -27,7 +27,8 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
 - **Admin setup**: Admin accounts are provisioned locally with `create_admin.py`; passwords are entered through a hidden, confirmed prompt.
 - **Live Statistics Overview**: Counters for Total, Pending, In Progress, and Resolved complaints.
 - **Search & Filter**: Search complaints by student name, roll number, system ID, or keyword; filter by lab and status.
-- **Email Students**: Compose and send Gmail notifications from the admin dashboard, with the registered student email prefilled when available.
+- **Email Students**: Use the row's **Email** action to compose a complaint-specific message. Delivery always uses that student's registered database email address.
+- **Complaint Actions**: View all complaint details, email the student, or delete only the selected complaint after confirmation.
 - **Action & Resolution**:
   - Update ticket status (`Pending` -> `In Progress` -> `Resolved` / `Rejected`).
   - Add administrative remarks or action notes (e.g. *"RAM replaced, system tested OK"*).
@@ -143,8 +144,9 @@ STARTTLS. The mailer uses Python's built-in SMTP and email libraries.
   ```
 
 5. Test custom sending at `http://127.0.0.1:8001/docs`: expand `POST /send-email`, choose **Try it out**, enter a recipient, subject, and message, then select **Execute**. A successful delivery returns `{"message":"Email sent successfully"}`. A missing configuration is reported as HTTP 500; SMTP delivery failures are reported as HTTP 502. Check Spam if the email is not in the inbox.
-6. To test the existing complaint workflow, sign in as a student and submit a complaint with a registered email address, then sign in as an admin. In **Update Ticket**, select `Resolved` and click **Save Changes**. The existing resolution email is sent on the transition to `Resolved`; saving an already-resolved ticket does not send a duplicate. If the ticket saves but the admin sees an email failure warning, check the server terminal and verify the App Password in `.env`. Once corrected, move the ticket to another status and then resolve it again to trigger a new notification.
-7. To connect custom email to another complaint action, call `send_custom_email(...)` from the backend after the relevant action succeeds, or call `POST /send-email` from a trusted client. The built-in resolution notification already runs in the backend; no extra frontend call is needed. Avoid sending SMTP credentials to browser code.
+6. To test the dashboard actions, sign in as an admin and use a complaint row's **View Complaints**, **Email**, and **Delete** buttons. View opens the selected record's full details; Email opens a prefilled message addressed to the student's registered database email; Delete asks for confirmation before removing only that record. To test successful email delivery, configure Gmail SMTP as above.
+7. To test the existing resolution workflow, sign in as a student and submit a complaint with a registered email address, then sign in as an admin. In **Update Ticket**, select `Resolved` and click **Save Changes**. The existing resolution email is sent on the transition to `Resolved`; saving an already-resolved ticket does not send a duplicate. If the ticket saves but the admin sees an email failure warning, check the server terminal and verify the App Password in `.env`. Once corrected, move the ticket to another status and then resolve it again to trigger a new notification.
+8. The complaint-specific email action uses the authenticated `POST /api/admin/complaints/{id}/email` endpoint, which looks up the recipient from the database. The general `POST /send-email` endpoint remains available for custom messages. Avoid sending SMTP credentials to browser code.
 
 ---
 
@@ -161,6 +163,7 @@ STARTTLS. The mailer uses Python's built-in SMTP and email libraries.
 | `GET` | `/api/admin/stats` | Complaint summary metrics | Admin |
 | `PATCH` | `/api/admin/complaints/{id}` | Update status & add remarks | Admin |
 | `DELETE` | `/api/admin/complaints/{id}` | Remove a complaint ticket | Admin |
+| `POST` | `/api/admin/complaints/{id}/email` | Email the student's registered address about a complaint | Admin |
 | `POST` | `/send-email` | Send an email through Gmail SMTP | Public |
 | `GET` | `/` | Admin login page | Public |
 | `GET` | `/student-login` | Student login and registration page | Public |

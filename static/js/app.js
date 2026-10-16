@@ -536,7 +536,9 @@ function openViewComplaint(complaintId) {
         ["Assigned Technician", complaint.assigned_technician || "Not assigned"],
         ["Repair Action", complaint.repair_action || "None"],
         ["Admin Remarks", complaint.admin_remarks || "None"],
-        ["Rectified Date", complaint.rectified_date || "Not rectified"]
+        ["Rectified Date", complaint.rectified_date || "Not rectified"],
+        ["Record Created", formatDate(complaint.created_at)],
+        ["Last Updated", formatDate(complaint.updated_at)]
     ];
 
     viewComplaintTitle.textContent = `Complaint #${complaint.id}`;
@@ -596,6 +598,7 @@ function openEmailModal(complaintId = null) {
     emailSendStatus.textContent = "";
     emailSendStatus.className = "email-send-status";
     emailRecipient.readOnly = Boolean(complaint);
+    emailModal.dataset.complaintId = complaint ? String(complaint.id) : "";
 
     if (complaint) {
         emailRecipient.value = complaint.student_email;
@@ -636,11 +639,18 @@ async function handleSendEmail(event) {
     emailSendStatus.className = "email-send-status is-loading";
 
     try {
-        await apiRequest("/send-email", "POST", {
-            to_email: emailRecipient.value.trim(),
-            subject: emailSubject.value.trim(),
-            message: emailMessage.value
-        });
+        const complaintId = emailModal.dataset.complaintId;
+        const emailRequest = complaintId
+            ? apiRequest(`/api/admin/complaints/${complaintId}/email`, "POST", {
+                subject: emailSubject.value.trim(),
+                message: emailMessage.value
+            })
+            : apiRequest("/send-email", "POST", {
+                to_email: emailRecipient.value.trim(),
+                subject: emailSubject.value.trim(),
+                message: emailMessage.value
+            });
+        await emailRequest;
         showToast("Email sent successfully.", "success");
         emailModal.style.display = "none";
         emailComposeForm.reset();
