@@ -48,6 +48,7 @@ const statResolved = document.getElementById("stat-resolved");
 const adminComplaintsTbody = document.getElementById("admin-complaints-tbody");
 const viewComplaintModal = document.getElementById("view-complaint-modal");
 const viewComplaintTitle = document.getElementById("view-complaint-title");
+const viewComplaintStatus = document.getElementById("view-complaint-status");
 const viewComplaintContent = document.getElementById("view-complaint-content");
 const viewComplaintClose = document.getElementById("view-complaint-close");
 const viewComplaintDismiss = document.getElementById("view-complaint-dismiss");
@@ -174,12 +175,16 @@ function initEvents() {
     viewComplaintModal.addEventListener("click", event => {
         if (event.target === viewComplaintModal) closeViewComplaint();
     });
+    statusModal.addEventListener("click", event => {
+        if (event.target === statusModal) closeModal();
+    });
     emailModal.addEventListener("click", event => {
         if (event.target === emailModal) closeEmailModal();
     });
     document.addEventListener("keydown", event => {
         if (event.key === "Escape") {
             if (viewComplaintModal.style.display === "flex") closeViewComplaint();
+            if (statusModal.style.display === "flex") closeModal();
             if (emailModal.style.display === "flex") closeEmailModal();
         }
     });
@@ -519,45 +524,81 @@ function openViewComplaint(complaintId) {
         return;
     }
 
-    const details = [
-        ["Complaint ID", complaint.id],
-        ["Complaint Date", formatComplaintDate(complaint.complaint_date)],
-        ["Student Name", complaint.student_name],
-        ["Student Roll Number", complaint.student_roll],
-        ["Student Email", complaint.student_email || "Not available"],
-        ["Department", complaint.department || "Not specified"],
-        ["Lab Name", complaint.lab_name],
-        ["Lab Location", complaint.lab_location || "Not specified"],
-        ["System Number", complaint.system_no],
-        ["Issue", complaint.issue_type],
-        ["Priority", complaint.priority],
-        ["Description", complaint.description],
-        ["Status", complaint.status],
-        ["Assigned Technician", complaint.assigned_technician || "Not assigned"],
-        ["Repair Action", complaint.repair_action || "None"],
-        ["Admin Remarks", complaint.admin_remarks || "None"],
-        ["Rectified Date", complaint.rectified_date || "Not rectified"],
-        ["Record Created", formatDate(complaint.created_at)],
-        ["Last Updated", formatDate(complaint.updated_at)]
+    const field = (label, value, className = "") => `
+        <div class="complaint-detail-item ${className}">
+            <dt>${escapeHtml(label)}</dt>
+            <dd>${value}</dd>
+        </div>
+    `;
+    const value = (text, fallback = "Not provided") =>
+        escapeHtml(String(text || fallback));
+    const sections = [
+        {
+            title: "Student Information",
+            fields: [
+                field("Student Name", value(complaint.student_name)),
+                field("Roll Number", value(complaint.student_roll)),
+                field("Registered Email", value(complaint.student_email, "Not available")),
+                field("Department", value(complaint.department, "Not specified"))
+            ]
+        },
+        {
+            title: "Lab & System Information",
+            fields: [
+                field("Lab Name", value(complaint.lab_name)),
+                field("Lab Location", value(complaint.lab_location, "Not specified")),
+                field("System Number", value(complaint.system_no))
+            ]
+        },
+        {
+            title: "Complaint Details",
+            fields: [
+                field("Issue Type", value(complaint.issue_type, "Not specified")),
+                field("Priority", `<span class="priority-badge priority-${escapeHtml(String(complaint.priority || "").toLowerCase())}">${value(complaint.priority)}</span>`),
+                field("Status", `<span class="status-badge status-${escapeHtml(String(complaint.status || "").toLowerCase().replace(/\s+/g, "-"))}">${value(complaint.status)}</span>`),
+                field("Description", value(complaint.description), "complaint-detail-item-wide")
+            ]
+        },
+        {
+            title: "Resolution Information",
+            fields: [
+                field("Assigned Technician", value(complaint.assigned_technician, "Not assigned")),
+                field("Repair Action Taken", value(complaint.repair_action, "None")),
+                field("Admin Remarks", value(complaint.admin_remarks, "None"), "complaint-detail-item-wide"),
+                field("Rectified Date", value(complaint.rectified_date, "Not rectified"))
+            ]
+        },
+        {
+            title: "Record Information",
+            fields: [
+                field("Complaint Date", value(formatComplaintDate(complaint.complaint_date))),
+                field("Record Created", value(formatDate(complaint.created_at))),
+                field("Last Updated", value(formatDate(complaint.updated_at)))
+            ]
+        }
     ];
 
     viewComplaintTitle.textContent = `Complaint #${complaint.id}`;
+    viewComplaintStatus.textContent = complaint.status || "Unknown";
+    viewComplaintStatus.className = `status-badge status-${String(complaint.status || "").toLowerCase().replace(/\s+/g, "-")}`;
     viewComplaintContent.innerHTML = `
-        <dl class="complaint-detail-list">
-            ${details.map(([label, value]) => `
-                <div>
-                    <dt>${escapeHtml(String(label))}</dt>
-                    <dd>${escapeHtml(String(value ?? ""))}</dd>
-                </div>
+        <div class="complaint-detail-sections">
+            ${sections.map(section => `
+                <section class="complaint-detail-section">
+                    <h4>${escapeHtml(section.title)}</h4>
+                    <dl class="complaint-detail-list">${section.fields.join("")}</dl>
+                </section>
             `).join("")}
-        </dl>
+        </div>
     `;
     viewComplaintModal.dataset.complaintId = String(complaint.id);
     viewComplaintModal.style.display = "flex";
+    syncModalScrollLock();
 }
 
 function closeViewComplaint() {
     viewComplaintModal.style.display = "none";
+    syncModalScrollLock();
 }
 
 // ================= ADMIN STATUS MODAL =================
@@ -571,14 +612,37 @@ window.openStatusModal = function(complaintId) {
     modalAssignedTechnician.value = complaint.assigned_technician || "";
     modalRepairAction.value = complaint.repair_action || "";
     modalAdminRemarks.value = complaint.admin_remarks || "";
+    modalTitle.textContent = `Update Complaint #${complaint.id}`;
 
     modalSummary.innerHTML = `
-        <div><strong>Student:</strong> ${escapeHtml(complaint.student_name)} (${escapeHtml(complaint.student_roll)}) - ${escapeHtml(complaint.department || "Department not provided")}</div>
-        <div><strong>Location:</strong> ${escapeHtml(complaint.lab_name)} - ${escapeHtml(complaint.lab_location || "Not specified")} - ${escapeHtml(complaint.system_no)}</div>
-        <div><strong>Issue:</strong> ${escapeHtml(complaint.issue_type)} - <em>${escapeHtml(complaint.description)}</em></div>
+        <div class="modal-summary-item">
+            <span>Student</span>
+            <strong>${escapeHtml(complaint.student_name || "Not provided")}</strong>
+        </div>
+        <div class="modal-summary-item">
+            <span>Roll Number</span>
+            <strong>${escapeHtml(complaint.student_roll || "Not provided")}</strong>
+        </div>
+        <div class="modal-summary-item">
+            <span>Lab</span>
+            <strong>${escapeHtml(complaint.lab_name || "Not provided")}</strong>
+        </div>
+        <div class="modal-summary-item">
+            <span>System</span>
+            <strong>${escapeHtml(complaint.system_no || "Not provided")}</strong>
+        </div>
+        <div class="modal-summary-item modal-summary-item-wide">
+            <span>Issue</span>
+            <strong>${escapeHtml(complaint.issue_type || "Not provided")}</strong>
+        </div>
+        <div class="modal-summary-item modal-summary-item-wide">
+            <span>Description</span>
+            <p>${escapeHtml(complaint.description || "No description provided.")}</p>
+        </div>
     `;
 
     statusModal.style.display = "flex";
+    syncModalScrollLock();
 };
 
 function openEmailModal(complaintId = null) {
@@ -621,12 +685,14 @@ function openEmailModal(complaintId = null) {
     }
 
     emailModal.style.display = "flex";
+    syncModalScrollLock();
     emailRecipient.focus();
 }
 
 function closeEmailModal() {
     if (emailSubmit.disabled) return;
     emailModal.style.display = "none";
+    syncModalScrollLock();
     emailComposeForm.reset();
     emailSendStatus.textContent = "";
 }
@@ -653,6 +719,7 @@ async function handleSendEmail(event) {
         await emailRequest;
         showToast("Email sent successfully.", "success");
         emailModal.style.display = "none";
+        syncModalScrollLock();
         emailComposeForm.reset();
         emailSendStatus.textContent = "";
     } catch (err) {
@@ -668,6 +735,13 @@ async function handleSendEmail(event) {
 
 function closeModal() {
     statusModal.style.display = "none";
+    syncModalScrollLock();
+}
+
+function syncModalScrollLock() {
+    const modalOpen = [viewComplaintModal, statusModal, emailModal]
+        .some(modal => modal.style.display === "flex");
+    document.body.classList.toggle("modal-open", modalOpen);
 }
 
 async function handleUpdateStatus(e) {
