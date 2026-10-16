@@ -48,29 +48,16 @@ body {
 }
 
 body.backend-page {
-    background-image: none;
+    background-image:
+        linear-gradient(rgb(15 23 42 / 0.32), rgb(15 23 42 / 0.32)),
+        url("../assets/admin-login-background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.admin-login-background {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.admin-login-background::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgb(15 23 42 / 0.28);
-}
-
-.admin-login-background video {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+body.backend-page::before {
+    background: rgb(15 23 42 / 0.08);
 }
 
 body::before {
