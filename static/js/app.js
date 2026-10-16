@@ -587,14 +587,12 @@ function openViewComplaint(complaintId) {
         {
             title: "Record Information",
             fields: [
-                field("Complaint Date", value(formatComplaintDate(complaint.complaint_date))),
-                field("Record Created", value(formatDate(complaint.created_at))),
-                field("Last Updated", value(formatDate(complaint.updated_at)))
+                field("Complaint Date", value(formatComplaintDate(complaint.complaint_date)))
             ]
         }
     ];
 
-    viewComplaintTitle.textContent = `Complaint #${complaint.id}`;
+    viewComplaintTitle.textContent = `Complaint No: ${complaint.id}`;
     viewComplaintStatus.textContent = complaint.status || "Unknown";
     viewComplaintStatus.className = `status-badge status-${String(complaint.status || "").toLowerCase().replace(/\s+/g, "-")}`;
     viewComplaintContent.innerHTML = `
@@ -840,15 +838,16 @@ async function deleteComplaint(complaintId, closeDetailsModal = false, triggerBu
         await apiRequest(`/api/admin/complaints/${id}`, "DELETE");
         state.adminComplaints = state.adminComplaints.filter(complaint => String(complaint.id) !== String(id));
         renderAdminComplaints(state.adminComplaints);
-        showToast(`Complaint #${id} deleted successfully.`, "info");
+        showToast(`Complaint #${id} deleted successfully.`, "success");
         if (closeDetailsModal) closeViewComplaint();
         await loadAdminData();
     } catch (err) {
+        showToast(err.message || "Failed to delete complaint.", "error");
+    } finally {
         if (triggerButton) {
             triggerButton.disabled = false;
             triggerButton.textContent = "Delete";
         }
-        showToast(err.message || "Failed to delete complaint.", "error");
     }
 }
 
