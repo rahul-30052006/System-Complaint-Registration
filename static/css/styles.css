@@ -98,7 +98,7 @@ body.dashboard-mode {
 }
 
 body.student-dashboard-mode {
-    background-image: url("../assets/student-portal-dashboard-background.webp");
+    background-image: url("../images/student-dashboard-bg.png");
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
@@ -106,7 +106,7 @@ body.student-dashboard-mode {
 }
 
 body.student-dashboard-mode::before {
-    background: rgb(255 255 255 / 0.14);
+    background: rgb(255 255 255 / 0.08);
 }
 
 #student-section {
@@ -116,7 +116,6 @@ body.student-dashboard-mode::before {
 
 #student-section .form-card {
     background: rgb(255 255 255 / 0.94);
-    backdrop-filter: blur(3px);
 }
 
 button,
