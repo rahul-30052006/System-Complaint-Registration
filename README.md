@@ -54,7 +54,7 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
     ├── admin-login.html     # Separate administrator sign-in
     ├── css/styles.css
     ├── images/
-    │   ├── admin-dashboard-bg.jpg
+    │   ├── admin-dashboard-bg.png
     │   └── computer-network-background.jpg
     └── js/
         ├── app.js

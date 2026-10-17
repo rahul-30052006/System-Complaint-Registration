@@ -104,7 +104,7 @@ body.student-dashboard-mode {
 }
 
 body.admin-dashboard-mode {
-    background-image: url("../images/admin-dashboard-bg.jpg");
+    background-image: url("../images/admin-dashboard-bg.png");
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
