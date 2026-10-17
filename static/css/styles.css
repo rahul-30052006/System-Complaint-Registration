@@ -103,8 +103,20 @@ body.student-dashboard-mode {
     background-attachment: fixed;
 }
 
+body.admin-dashboard-mode {
+    background-image: url("../images/admin-dashboard-bg.jpg");
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
 body.student-dashboard-mode::before {
     background: rgb(255 255 255 / 0.08);
+}
+
+body.admin-dashboard-mode::before {
+    background: rgb(255 255 255 / 0.12);
 }
 
 #student-section {

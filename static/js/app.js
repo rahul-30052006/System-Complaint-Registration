@@ -289,6 +289,7 @@ function handleLogout() {
 function showAuthView() {
     document.body.classList.remove("dashboard-mode");
     document.body.classList.remove("student-dashboard-mode");
+    document.body.classList.remove("admin-dashboard-mode");
     document.body.classList.add("student-auth-page");
     authSection.style.display = "flex";
     studentSection.style.display = "none";
@@ -300,6 +301,7 @@ function showDashboardView() {
     document.body.classList.add("dashboard-mode");
     document.body.classList.remove("student-auth-page");
     document.body.classList.toggle("student-dashboard-mode", state.user.role !== "admin");
+    document.body.classList.toggle("admin-dashboard-mode", state.user.role === "admin");
     authSection.style.display = "none";
     navUserSection.style.display = "flex";
     userDisplayName.textContent = state.user.full_name;

@@ -53,7 +53,9 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
     ├── index.html           # Student sign-in, registration, and dashboards
     ├── admin-login.html     # Separate administrator sign-in
     ├── css/styles.css
-    ├── images/computer-network-background.jpg
+    ├── images/
+    │   ├── admin-dashboard-bg.jpg
+    │   └── computer-network-background.jpg
     └── js/
         ├── app.js
         └── admin-login.js
