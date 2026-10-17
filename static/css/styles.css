@@ -60,22 +60,14 @@ body.backend-page::before {
 
 body.student-auth-page {
     background-image:
-        linear-gradient(rgb(15 23 42 / 0.16), rgb(15 23 42 / 0.16)),
-        url("../images/student-login-background.webp");
+        linear-gradient(rgb(15 23 42 / 0.2), rgb(15 23 42 / 0.2)),
+        url("../images/student-auth-background.png");
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
+    background-attachment: fixed;
     min-height: 100vh;
-}
-
-body.student-auth-page.student-signin-page {
-    background-image:
-        linear-gradient(rgb(15 23 42 / 0.18), rgb(15 23 42 / 0.18)),
-        url("../images/student-signin-background.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    min-height: 100vh;
+    width: 100%;
 }
 
 body::before {
@@ -1490,6 +1482,10 @@ body.modal-open {
 
 @media (max-width: 768px) {
     body.student-dashboard-mode {
+        background-attachment: scroll;
+    }
+
+    body.student-auth-page {
         background-attachment: scroll;
     }
 

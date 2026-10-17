@@ -87,7 +87,6 @@ function initEvents() {
             authPanels.forEach(p => p.classList.remove("active"));
             btn.classList.add("active");
             document.getElementById(btn.dataset.tab).classList.add("active");
-            document.body.classList.toggle("student-signin-page", btn.dataset.tab === "login-tab");
         });
     });
 
