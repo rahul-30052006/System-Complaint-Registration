@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Complaint Registration</title>
     <meta name="description" content="Report, track, and resolve computer lab system issues.">
-    <link rel="stylesheet" href="/static/css/styles.css?v=27">
+    <link rel="stylesheet" href="/static/css/styles.css?v=28">
     <!-- Google Fonts for modern typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -234,7 +234,13 @@
                 </div>
                 <div class="admin-toolbar-actions">
                     <button id="btn-send-email" class="btn btn-primary" type="button">✉️ Send Email</button>
-                    <button id="btn-refresh-admin" class="btn btn-outline-primary" type="button">🔄 Refresh Complaints & Stats</button>
+                    <button id="btn-refresh-admin" class="btn btn-primary" type="button">
+                        <svg class="refresh-button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M20 7v5h-5M4 17v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M5.5 9a7 7 0 0 1 11.7-2L20 12M4 12l2.8 5a7 7 0 0 0 11.7-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Refresh Complaints &amp; Stats</span>
+                    </button>
                 </div>
             </div>
 
