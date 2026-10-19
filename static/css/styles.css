@@ -889,6 +889,11 @@ textarea:focus-visible {
     align-items: flex-start;
 }
 
+.complaint-card-header > div:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .complaint-system-badge {
     font-weight: 700;
     font-size: 1.05rem;
@@ -920,8 +925,10 @@ textarea:focus-visible {
 
 .complaint-meta {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 0.25rem 0.75rem;
     font-size: 0.75rem;
     color: var(--text-muted);
     border-top: 1px solid #f1f5f9;

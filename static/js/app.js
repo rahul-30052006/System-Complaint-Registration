@@ -416,9 +416,9 @@ function renderStudentComplaints(complaints) {
         <div class="complaint-card">
             <div class="complaint-card-header">
                 <div>
-                    <span class="complaint-system-badge">${escapeHtml(c.system_no)}</span>
-                    <div class="complaint-lab-name">${escapeHtml(c.lab_name)}</div>
-                    ${c.lab_location ? `<div class="complaint-lab-name">${escapeHtml(c.lab_location)}</div>` : ''}
+                    <span class="complaint-system-badge">Lab No: ${escapeHtml(c.system_no)}</span>
+                    <div class="complaint-lab-name">Lab Name: ${escapeHtml(c.lab_name)}</div>
+                    <div class="complaint-lab-name">Lab Location: ${escapeHtml(c.lab_location || "Not specified")}</div>
                 </div>
                 <div class="tags-group">
                     <span class="priority-badge priority-${c.priority.toLowerCase()}">${c.priority}</span>
@@ -446,8 +446,8 @@ function renderStudentComplaints(complaints) {
             ` : ''}
 
             <div class="complaint-meta">
-                <span>Ticket #${c.id}</span>
-                <span>Filed: ${formatComplaintDate(c.complaint_date || c.created_at)}</span>
+                <span>Complaint No: ${c.id}</span>
+                <span>Register Date: ${formatComplaintDate(c.created_at || c.complaint_date)}</span>
             </div>
         </div>
     `).join("");
