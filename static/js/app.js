@@ -350,7 +350,7 @@ async function handleCreateComplaint(e) {
     
     const selectedLab = labNameSelect.value;
     const lab_name = selectedLab === "Others" ? customLabName.value.trim() : selectedLab;
-    const complaint_date = complaintDateInput.value;
+    const complaintDateValue = complaintDateInput.value.trim();
     const department = departmentInput.value.trim();
     const lab_location = document.getElementById("lab-location").value.trim();
     const system_no = document.getElementById("system-no").value.trim();
@@ -358,12 +358,19 @@ async function handleCreateComplaint(e) {
     const priority = document.getElementById("priority").value;
     const description = document.getElementById("description").value.trim();
 
-    if (!complaint_date || !department || !lab_name || !lab_location || !system_no || !issue_type || !description) {
+    if (!complaintDateValue || !department || !lab_name || !lab_location || !system_no || !issue_type || !description) {
         if (selectedLab === "Others" && !lab_name) {
             customLabName.reportValidity();
             return;
         }
         showToast("Please fill in all required fields.", "error");
+        return;
+    }
+
+    const complaint_date = parseComplaintDate(complaintDateValue);
+    if (!complaint_date) {
+        showToast("Enter a valid complaint date in DD/MM/YYYY format (for example, 19/10/2026).", "error");
+        complaintDateInput.focus();
         return;
     }
 
@@ -977,9 +984,36 @@ function formatComplaintDate(dateStr) {
     const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
     if (!match) return formatDate(dateStr);
     const [, year, month, day] = match;
-    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-    });
+    return `${day}/${month}/${year}`;
+}
+
+function parseComplaintDate(value) {
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+    if (!match) return null;
+
+    const [, dayText, monthText, yearText] = match;
+    const day = Number(dayText);
+    const month = Number(monthText);
+    const year = Number(yearText);
+    const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = [
+        31,
+        isLeapYear ? 29 : 28,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31
+    ];
+
+    if (year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth[month - 1]) {
+        return null;
+    }
+
+    return `${yearText}-${monthText}-${dayText}`;
 }
