@@ -590,7 +590,6 @@ function openViewComplaint(complaintId) {
                 field("Technician Contact", value(complaint.technician_contact, "Not provided")),
                 field("Expected Service Date", value(formatServiceVisit(complaint.service_visit_at))),
                 field("Repair Action Taken", value(complaint.repair_action, "None")),
-                field("Admin Remarks", value(complaint.admin_remarks, "None"), "complaint-detail-item-wide"),
                 field("Rectified Date", value(complaint.rectified_date, "Not rectified"))
             ]
         },
@@ -630,7 +629,8 @@ function openViewComplaint(complaintId) {
                         </div>
                         <div class="form-group">
                             <label for="update-service-visit">Service visit date and time</label>
-                            <input id="update-service-visit" type="datetime-local" value="${escapeHtml(String(complaint.service_visit_at || "").replace(" ", "T").slice(0, 16))}">
+                            <input id="update-service-visit" type="text" inputmode="numeric" placeholder="DD/MM/YYYY HH:MM" aria-describedby="service-visit-format" value="${escapeHtml(formatServiceVisitInput(complaint.service_visit_at))}">
+                            <small id="service-visit-format">Enter date as day/month/year and time in 24-hour format.</small>
                         </div>
                         <div class="form-group">
                             <label for="update-status">Complaint status</label>
@@ -643,10 +643,6 @@ function openViewComplaint(complaintId) {
                         <div class="form-group service-form-wide">
                             <label for="update-repair-action">Repair action or service instructions</label>
                             <textarea id="update-repair-action" rows="3" maxlength="2000" placeholder="Repair action taken or instructions for the service visit">${escapeHtml(complaint.repair_action || "")}</textarea>
-                        </div>
-                        <div class="form-group service-form-wide">
-                            <label for="update-admin-remarks">Admin remarks and contact instructions</label>
-                            <textarea id="update-admin-remarks" rows="3" maxlength="1000" placeholder="Add updates or instructions for the student">${escapeHtml(complaint.admin_remarks || "")}</textarea>
                         </div>
                     </div>
                     <p id="complaint-update-status" class="complaint-update-status" role="status" aria-live="polite"></p>
@@ -776,6 +772,15 @@ async function handleUpdateStatus(event) {
         feedback.className = "complaint-update-status is-error";
         return;
     }
+    let serviceVisitAt;
+    try {
+        serviceVisitAt = parseServiceVisitInput(form.querySelector("#update-service-visit").value);
+    } catch (err) {
+        feedback.textContent = err.message;
+        feedback.className = "complaint-update-status is-error";
+        form.querySelector("#update-service-visit").focus();
+        return;
+    }
     if (status === "Resolved" && currentComplaint.status !== "Resolved" &&
         !confirm("Mark this complaint as Resolved and send the repair-completion email to the student?")) {
         return;
@@ -790,9 +795,8 @@ async function handleUpdateStatus(event) {
             status,
             assigned_technician: form.querySelector("#update-technician").value.trim(),
             technician_contact: form.querySelector("#update-technician-contact").value.trim(),
-            service_visit_at: form.querySelector("#update-service-visit").value || null,
-            repair_action: form.querySelector("#update-repair-action").value.trim(),
-            admin_remarks: form.querySelector("#update-admin-remarks").value.trim()
+            service_visit_at: serviceVisitAt,
+            repair_action: form.querySelector("#update-repair-action").value.trim()
         });
 
         state.adminComplaints = state.adminComplaints.map(complaint =>
@@ -977,6 +981,60 @@ function formatServiceVisit(dateStr) {
     } catch {
         return dateStr;
     }
+}
+
+function formatServiceVisitInput(dateStr) {
+    if (!dateStr) return "";
+    const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(dateStr));
+    if (!match) return String(dateStr);
+    const [, year, month, day, hour, minute] = match;
+    return `${day}/${month}/${year} ${hour}:${minute}`;
+}
+
+function parseServiceVisitInput(value) {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/.exec(trimmed);
+    if (!match) {
+        throw new Error("Enter the service visit as DD/MM/YYYY HH:MM using 24-hour time.");
+    }
+
+    const [, dayText, monthText, yearText, hourText, minuteText] = match;
+    const day = Number(dayText);
+    const month = Number(monthText);
+    const year = Number(yearText);
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
+    const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = [
+        31,
+        isLeapYear ? 29 : 28,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31
+    ];
+
+    if (
+        year < 1 ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > daysInMonth[month - 1] ||
+        hour > 23 ||
+        minute > 59
+    ) {
+        throw new Error("Enter a valid service visit date and time.");
+    }
+
+    return `${yearText}-${monthText}-${dayText}T${hourText}:${minuteText}`;
 }
 
 function formatComplaintDate(dateStr) {
