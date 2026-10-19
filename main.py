@@ -3,7 +3,7 @@ import logging
 import sqlite3
 import smtplib
 from datetime import date, datetime
-from typing import Optional, Tuple
+from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -23,25 +23,6 @@ from auth import (
 
 logger = logging.getLogger(__name__)
 EMAIL_VALIDATOR = TypeAdapter(EmailStr)
-
-# Keep these confirmed demo records in SQLite, but out of admin dashboard views.
-ADMIN_HIDDEN_COMPLAINTS = (
-    (3, 3, "Sarah Connor", "21CS_1791179196", "PC-08", "2026-10-05 11:16:36"),
-    (4, 3, "Sarah Connor", "21CS_1791179196", "PC-15", "2026-10-05 11:16:36"),
-)
-
-
-def admin_complaint_visibility_filter(alias: str = "c") -> Tuple[str, tuple]:
-    fields = ("id", "student_id", "student_name", "student_roll", "system_no", "created_at")
-    hidden_rows = [
-        "(" + " AND ".join(f"{alias}.{field} = ?" for field in fields) + ")"
-        for _ in ADMIN_HIDDEN_COMPLAINTS
-    ]
-    return (
-        f"NOT ({' OR '.join(hidden_rows)})",
-        tuple(value for row in ADMIN_HIDDEN_COMPLAINTS for value in row),
-    )
-
 
 # Initialize Database on app load
 init_db()
@@ -392,14 +373,13 @@ def get_all_complaints(
 ):
     conn = get_db()
     cursor = conn.cursor()
-    visibility_filter, hidden_params = admin_complaint_visibility_filter()
     query = """
         SELECT c.*, u.email AS student_email
         FROM complaints c
         LEFT JOIN users u ON u.id = c.student_id
-        WHERE {visibility_filter}
-    """.format(visibility_filter=visibility_filter)
-    params = list(hidden_params)
+        WHERE 1 = 1
+    """
+    params = []
     
     if status_filter and status_filter.lower() != "all":
         query += " AND status = ?"
@@ -425,52 +405,34 @@ def get_all_complaints(
 def get_admin_stats(admin: dict = Depends(require_admin)):
     conn = get_db()
     cursor = conn.cursor()
-    visibility_filter, hidden_params = admin_complaint_visibility_filter()
 
-    cursor.execute(
-        f"SELECT COUNT(*) as total FROM complaints c WHERE {visibility_filter}",
-        hidden_params,
-    )
+    cursor.execute("SELECT COUNT(*) as total FROM complaints")
     total = cursor.fetchone()["total"]
 
-    cursor.execute(
-        f"SELECT COUNT(*) as count FROM complaints c WHERE {visibility_filter} AND c.status = 'Pending'",
-        hidden_params,
-    )
+    cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Pending'")
     pending = cursor.fetchone()["count"]
 
     cursor.execute(
-        f"SELECT COUNT(*) as count FROM complaints c WHERE {visibility_filter} "
-        "AND c.status IN ('In Progress', 'Technician Assigned')",
-        hidden_params,
+        "SELECT COUNT(*) as count FROM complaints "
+        "WHERE status IN ('In Progress', 'Technician Assigned')"
     )
     in_progress = cursor.fetchone()["count"]
 
-    cursor.execute(
-        f"SELECT COUNT(*) as count FROM complaints c WHERE {visibility_filter} AND c.status = 'Resolved'",
-        hidden_params,
-    )
+    cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Resolved'")
     resolved = cursor.fetchone()["count"]
 
-    cursor.execute(
-        f"SELECT COUNT(*) as count FROM complaints c WHERE {visibility_filter} AND c.status = 'Rejected'",
-        hidden_params,
-    )
+    cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Rejected'")
     rejected = cursor.fetchone()["count"]
     
     # Complaints grouped by lab
     cursor.execute(
-        f"SELECT c.lab_name, COUNT(*) as count FROM complaints c "
-        f"WHERE {visibility_filter} GROUP BY c.lab_name",
-        hidden_params,
+        "SELECT lab_name, COUNT(*) as count FROM complaints GROUP BY lab_name"
     )
     by_lab = [dict(r) for r in cursor.fetchall()]
     
     # Complaints grouped by issue type
     cursor.execute(
-        f"SELECT c.issue_type, COUNT(*) as count FROM complaints c "
-        f"WHERE {visibility_filter} GROUP BY c.issue_type",
-        hidden_params,
+        "SELECT issue_type, COUNT(*) as count FROM complaints GROUP BY issue_type"
     )
     by_issue = [dict(r) for r in cursor.fetchall()]
     

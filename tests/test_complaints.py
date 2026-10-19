@@ -362,7 +362,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
             404,
         )
 
-    def test_admin_relogin_shows_current_database_complaints_without_confirmed_demo_rows(self):
+    def test_admin_relogin_shows_all_persisted_complaints(self):
         conn = database.get_db()
         conn.execute("""
             INSERT INTO users (id, username, full_name, email, password_hash, role, created_at)
@@ -436,7 +436,10 @@ class ComplaintWorkflowTests(unittest.TestCase):
             )
             self.assertEqual(admin_complaints.status_code, 200)
             rows = admin_complaints.json()["complaints"]
-            self.assertEqual([item["id"] for item in rows], [actual_complaint["id"]])
+            self.assertEqual(
+                [item["id"] for item in rows],
+                [actual_complaint["id"], 4, 3],
+            )
             displayed = rows[0]
             self.assertEqual(displayed["student_name"], "Sam Student")
             self.assertEqual(displayed["student_roll"], "student-17")
@@ -446,6 +449,7 @@ class ComplaintWorkflowTests(unittest.TestCase):
             self.assertEqual(displayed["complaint_date"], "2026-10-15")
             self.assertEqual(displayed["status"], "Pending")
 
+        database.init_db()
         relogin = self.client.post(
             "/api/auth/login",
             json={"login_id": "repair-admin", "password": "AdminPassword123!"},
@@ -461,13 +465,13 @@ class ComplaintWorkflowTests(unittest.TestCase):
         self.assertEqual(after_relogin.status_code, 200)
         self.assertEqual(
             [item["id"] for item in after_relogin.json()["complaints"]],
-            [actual_complaint["id"]],
+            [actual_complaint["id"], 4, 3],
         )
 
         stats = self.client.get("/api/admin/stats", headers=relogin_headers)
         self.assertEqual(stats.status_code, 200)
-        self.assertEqual(stats.json()["total"], 1)
-        self.assertEqual(stats.json()["pending"], 1)
+        self.assertEqual(stats.json()["total"], 3)
+        self.assertEqual(stats.json()["pending"], 3)
 
         conn = database.get_db()
         retained_rows = conn.execute(

@@ -46,6 +46,21 @@ class AuthenticationFlowTests(unittest.TestCase):
         self.assertNotEqual(stored["password_hash"], "StrongTestPassword!")
         self.assertTrue(verify_password("StrongTestPassword!", stored["password_hash"]))
 
+    def test_signup_survives_database_reinitialization_and_student_can_log_in_again(self):
+        self.register_student()
+
+        database.init_db()
+        response = self.client.post(
+            "/api/auth/login",
+            json={
+                "login_id": "student-01",
+                "password": "StrongTestPassword!",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["username"], "student-01")
+
     def test_signup_without_full_name_uses_username_and_can_log_in(self):
         result = main.register_student(RegisterRequest(
             username="username-only",

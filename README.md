@@ -156,6 +156,7 @@ does not expose traceback details to the browser.
 ## Configuration and deployment
 
 - The SQLite database is stored locally in `complaints.db`; back it up before replacing or removing it.
+- `DATABASE_PATH` can override the SQLite file location. Render's default service filesystem is ephemeral, so SQLite data there can disappear on a restart or deployment. To keep SQLite on Render, attach a persistent disk (for example, mounted at `/var/data`) and set `DATABASE_PATH=/var/data/complaints.db`. Before pointing the app at that path, stop it and copy the existing database file there; otherwise the app will initialize a new, empty database at the configured location. Keep a backup before copying. A managed PostgreSQL database is recommended for production, especially if running more than one application instance.
 - On next backend startup, `database.py` automatically adds the technician contact and scheduled service visit columns to existing complaint tables. Existing complaint records are preserved; no manual migration command is required.
 - The login pages use the supplied computer-network background image at `static/images/computer-network-background.jpg`.
 - The bundled bearer-token signing key is for local development. Configure a private secret and restrict CORS origins before deploying this application to a public environment.
