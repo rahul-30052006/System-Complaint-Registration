@@ -774,7 +774,7 @@ async function sendServiceAssignmentEmail() {
 
     const serviceVisit = `${serviceVisitAt.slice(8, 10)}/${serviceVisitAt.slice(5, 7)}/${serviceVisitAt.slice(0, 4)} ${serviceVisitAt.slice(11, 16)}`;
     const message = [
-        "Dear Student,",
+        "Dear User,",
         "",
         "Your system complaint service assignment has been updated.",
         "",
