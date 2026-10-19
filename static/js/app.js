@@ -235,7 +235,7 @@ async function handleLogin(e) {
     try {
         const data = await apiRequest("/api/auth/login", "POST", { login_id, password });
         if (data.user.role !== "student") {
-            showToast("This page is for student accounts. Please use Admin Login.", "error");
+            showToast("This account uses a different login page.", "error");
             return;
         }
 

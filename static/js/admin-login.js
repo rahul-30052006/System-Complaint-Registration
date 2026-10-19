@@ -18,7 +18,7 @@ adminLoginForm.addEventListener("submit", async (event) => {
             throw new Error(data.detail || "Login failed. Check your credentials.");
         }
         if (data.user.role !== "admin") {
-            showToast("This page is for administrators. Please use Student Login.", "error");
+            showToast("This page is for administrators. Please use User Login.", "error");
             return;
         }
 
