@@ -576,10 +576,9 @@ function openViewComplaint(complaintId) {
         escapeHtml(String(text || fallback));
     const sections = [
         {
-            title: "Student Information",
+            title: "User Information",
             fields: [
-                field("Student Name", value(complaint.student_name)),
-                field("Roll Number", value(complaint.student_roll)),
+                field("User Name", value(complaint.student_name)),
                 field("Registered Email", value(complaint.student_email, "Not available")),
                 field("Department", value(complaint.department, "Not specified"))
             ]
