@@ -32,7 +32,7 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
 - **Technician Assignment & Resolution**:
   - Assign a technician, add contact details, schedule a service visit, and record repair instructions and admin remarks.
   - Update ticket status (`Pending`, `In Progress`, `Technician Assigned`, `Resolved`, or `Rejected`).
-  - Send assignment updates and repair-completion emails to the student's registered address.
+  - Preview and confirm service assignment emails to the student's registered address; repair-completion emails are sent after resolving a complaint.
   - Delete ticket if needed.
 
 ---
@@ -205,8 +205,9 @@ alternatives.
    status requires both technician name and visit date/time.
 7. To test resolution, select **Resolved** and confirm the prompt. The
    completion email is sent after saving. Repeating the same update does not
-   send a duplicate. **Email Student** and the table's **Email** action send an
-   intentional custom email to the complaint's registered address.
+   send a duplicate. **Send Email** previews the current service assignment
+   details before sending to the complaint's registered address. The table's
+   **Email** action opens the custom email composer.
 8. Run automated tests using `python -m unittest discover -s tests`.
 
 Common delivery issues:

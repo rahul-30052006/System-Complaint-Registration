@@ -1047,6 +1047,44 @@ body.modal-open {
     gap: 0.5rem;
 }
 
+.email-preview-meta {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.email-preview-meta > div,
+.email-preview-body {
+    padding: 0.85rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.email-preview-meta dt,
+.email-preview-body h4 {
+    margin-bottom: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.email-preview-meta dd {
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+}
+
+.email-preview-body pre {
+    margin: 0;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 .email-send-status {
     min-height: 1.25rem;
     font-size: 0.875rem;

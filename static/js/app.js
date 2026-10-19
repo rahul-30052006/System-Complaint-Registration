@@ -8,6 +8,7 @@ const state = {
     user: JSON.parse(localStorage.getItem("user") || "null"),
     adminComplaints: [],
     studentComplaints: [],
+    serviceEmailPreview: null,
     authRequestPending: false
 };
 
@@ -72,6 +73,13 @@ const emailMessage = document.getElementById("email-message");
 const emailSubmit = document.getElementById("email-submit");
 const emailSendStatus = document.getElementById("email-send-status");
 const emailComplaintContext = document.getElementById("email-complaint-context");
+const serviceEmailPreviewModal = document.getElementById("service-email-preview-modal");
+const serviceEmailPreviewTo = document.getElementById("service-email-preview-to");
+const serviceEmailPreviewSubject = document.getElementById("service-email-preview-subject");
+const serviceEmailPreviewMessage = document.getElementById("service-email-preview-message");
+const serviceEmailPreviewStatus = document.getElementById("service-email-preview-status");
+const serviceEmailPreviewCancel = document.getElementById("service-email-preview-cancel");
+const serviceEmailPreviewConfirm = document.getElementById("service-email-preview-confirm");
 
 // ================= INITIALIZATION =================
 document.addEventListener("DOMContentLoaded", () => {
@@ -139,6 +147,8 @@ function initEvents() {
     // Modal controls
     emailModalClose.addEventListener("click", closeEmailModal);
     emailCancel.addEventListener("click", closeEmailModal);
+    serviceEmailPreviewCancel.addEventListener("click", closeServiceEmailPreview);
+    serviceEmailPreviewConfirm.addEventListener("click", confirmServiceEmailSend);
     btnDeleteComplaint.addEventListener("click", handleDeleteComplaint);
     adminComplaintsTbody.addEventListener("click", event => {
         const viewButton = event.target.closest("[data-view-complaint]");
@@ -171,10 +181,18 @@ function initEvents() {
     emailModal.addEventListener("click", event => {
         if (event.target === emailModal) closeEmailModal();
     });
+    serviceEmailPreviewModal.addEventListener("click", event => {
+        if (event.target === serviceEmailPreviewModal) closeServiceEmailPreview();
+    });
     document.addEventListener("keydown", event => {
         if (event.key === "Escape") {
-            if (viewComplaintModal.style.display === "flex") closeViewComplaint();
-            if (emailModal.style.display === "flex") closeEmailModal();
+            if (serviceEmailPreviewModal.style.display === "flex") {
+                closeServiceEmailPreview();
+            } else if (emailModal.style.display === "flex") {
+                closeEmailModal();
+            } else if (viewComplaintModal.style.display === "flex") {
+                closeViewComplaint();
+            }
         }
     });
 
@@ -736,16 +754,30 @@ async function sendServiceAssignmentEmail() {
         return;
     }
 
-    const technicianName = form.querySelector("#update-technician").value.trim() || "Not assigned";
-    const technicianContact = form.querySelector("#update-technician-contact").value.trim() || "Not provided";
-    const serviceVisit = serviceVisitAt
-        ? `${serviceVisitAt.slice(8, 10)}/${serviceVisitAt.slice(5, 7)}/${serviceVisitAt.slice(0, 4)} ${serviceVisitAt.slice(11, 16)}`
-        : "Not scheduled";
+    const technicianName = form.querySelector("#update-technician").value.trim();
+    const technicianContact = form.querySelector("#update-technician-contact").value.trim();
     const complaintStatus = form.querySelector("#update-status").value;
+    const complaint = state.adminComplaints.find(item => String(item.id) === String(complaintId));
+    const missingDetails = [];
+    if (!technicianName) missingDetails.push("technician name");
+    if (!technicianContact) missingDetails.push("technician contact details");
+    if (!serviceVisitAt) missingDetails.push("service visit date and time");
+    if (!complaintStatus) missingDetails.push("complaint status");
+    if (!complaint?.student_email) {
+        missingDetails.push("the student's registered email address");
+    }
+    if (missingDetails.length) {
+        feedback.textContent = `Complete ${missingDetails.join(", ")} before previewing the email.`;
+        feedback.className = "complaint-update-status is-error";
+        showToast(feedback.textContent, "error");
+        return;
+    }
+
+    const serviceVisit = `${serviceVisitAt.slice(8, 10)}/${serviceVisitAt.slice(5, 7)}/${serviceVisitAt.slice(0, 4)} ${serviceVisitAt.slice(11, 16)}`;
     const message = [
         "Dear Student,",
         "",
-        "Your system complaint service assignment has been updated. Please find the details below:",
+        "Your system complaint service assignment has been updated.",
         "",
         `- Technician Name: ${technicianName}`,
         `- Technician Contact Details: ${technicianContact}`,
@@ -758,26 +790,65 @@ async function sendServiceAssignmentEmail() {
         "System Complaint Registration Team"
     ].join("\n");
 
-    viewComplaintEmail.disabled = true;
-    const originalButtonText = viewComplaintEmail.textContent;
-    viewComplaintEmail.textContent = "Sending...";
-    feedback.textContent = "Sending service assignment email...";
-    feedback.className = "complaint-update-status is-loading";
+    state.serviceEmailPreview = {
+        complaintId,
+        recipient: complaint.student_email,
+        subject: "System Complaint – Service Assignment Update",
+        message
+    };
+    serviceEmailPreviewTo.textContent = state.serviceEmailPreview.recipient;
+    serviceEmailPreviewSubject.textContent = state.serviceEmailPreview.subject;
+    serviceEmailPreviewMessage.textContent = state.serviceEmailPreview.message;
+    serviceEmailPreviewStatus.textContent = "";
+    serviceEmailPreviewStatus.className = "email-send-status";
+    serviceEmailPreviewConfirm.disabled = false;
+    serviceEmailPreviewConfirm.textContent = "Confirm & Send Email";
+    serviceEmailPreviewModal.style.display = "flex";
+    syncModalScrollLock();
+    serviceEmailPreviewCancel.focus();
+}
+
+function closeServiceEmailPreview() {
+    if (serviceEmailPreviewConfirm.disabled) return;
+    serviceEmailPreviewModal.style.display = "none";
+    state.serviceEmailPreview = null;
+    serviceEmailPreviewStatus.textContent = "";
+    syncModalScrollLock();
+}
+
+async function confirmServiceEmailSend() {
+    const preview = state.serviceEmailPreview;
+    if (!preview || serviceEmailPreviewConfirm.disabled) return;
+
+    serviceEmailPreviewConfirm.disabled = true;
+    serviceEmailPreviewCancel.disabled = true;
+    serviceEmailPreviewConfirm.textContent = "Sending...";
+    serviceEmailPreviewStatus.textContent = "Sending email...";
+    serviceEmailPreviewStatus.className = "email-send-status is-loading";
     try {
-        await apiRequest(`/api/admin/complaints/${complaintId}/email`, "POST", {
-            subject: "System Complaint – Service Assignment Update",
-            message
+        await apiRequest(`/api/admin/complaints/${preview.complaintId}/email`, "POST", {
+            subject: preview.subject,
+            message: preview.message
         });
-        feedback.textContent = "Service assignment email sent to the student's registered address.";
-        feedback.className = "complaint-update-status is-success";
-        showToast(feedback.textContent, "success");
+        serviceEmailPreviewModal.style.display = "none";
+        state.serviceEmailPreview = null;
+        syncModalScrollLock();
+        const feedback = document.querySelector("#complaint-update-form #complaint-update-status");
+        if (feedback) {
+            feedback.textContent = "Service assignment email sent to the student's registered address.";
+            feedback.className = "complaint-update-status is-success";
+        }
+        showToast("Service assignment email sent successfully.", "success");
     } catch (err) {
-        feedback.textContent = err.message || "Unable to send the service assignment email. Please try again.";
-        feedback.className = "complaint-update-status is-error";
-        showToast(feedback.textContent, "error");
+        serviceEmailPreviewStatus.textContent = err.message || "Unable to send the email. Please try again.";
+        serviceEmailPreviewStatus.className = "email-send-status is-error";
+        serviceEmailPreviewConfirm.disabled = false;
+        serviceEmailPreviewConfirm.textContent = "Retry Send Email";
     } finally {
-        viewComplaintEmail.disabled = false;
-        viewComplaintEmail.textContent = originalButtonText;
+        serviceEmailPreviewCancel.disabled = false;
+        if (serviceEmailPreviewModal.style.display === "flex" && serviceEmailPreviewConfirm.textContent === "Sending...") {
+            serviceEmailPreviewConfirm.textContent = "Confirm & Send Email";
+        }
     }
 }
 
@@ -818,7 +889,7 @@ async function handleSendEmail(event) {
 }
 
 function syncModalScrollLock() {
-    const modalOpen = [viewComplaintModal, emailModal]
+    const modalOpen = [viewComplaintModal, emailModal, serviceEmailPreviewModal]
         .some(modal => modal.style.display === "flex");
     document.body.classList.toggle("modal-open", modalOpen);
 }

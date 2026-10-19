@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Complaint Registration</title>
     <meta name="description" content="Report, track, and resolve computer lab system issues.">
-    <link rel="stylesheet" href="/static/css/styles.css?v=30">
+    <link rel="stylesheet" href="/static/css/styles.css?v=31">
     <!-- Google Fonts for modern typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -371,7 +371,7 @@
             <div id="view-complaint-content" class="modal-body"></div>
             <div class="modal-footer detail-modal-footer">
                 <button id="view-complaint-update" class="btn btn-outline-primary modal-action-btn" type="button">Assign / Update Service</button>
-                <button id="view-complaint-email" class="btn btn-primary modal-action-btn" type="button">Email Student</button>
+                <button id="view-complaint-email" class="btn btn-primary modal-action-btn" type="button">Send Email</button>
                 <button id="btn-delete-complaint" class="btn btn-outline-danger modal-action-btn" type="button">Delete</button>
                 <button id="view-complaint-dismiss" class="btn btn-secondary modal-action-btn" type="button">Close</button>
             </div>
@@ -413,7 +413,39 @@
         </section>
     </div>
 
+    <div id="service-email-preview-modal" class="modal-backdrop" style="display: none;">
+        <section class="modal-window email-modal-window" role="dialog" aria-modal="true" aria-labelledby="service-email-preview-title">
+            <div class="modal-header">
+                <div>
+                    <h3 id="service-email-preview-title">Preview Service Assignment Email</h3>
+                    <p class="email-modal-description">Review the email before sending it to the student's registered address.</p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <dl class="email-preview-meta">
+                    <div>
+                        <dt>To</dt>
+                        <dd id="service-email-preview-to"></dd>
+                    </div>
+                    <div>
+                        <dt>Subject</dt>
+                        <dd id="service-email-preview-subject"></dd>
+                    </div>
+                </dl>
+                <div class="email-preview-body">
+                    <h4>Email body</h4>
+                    <pre id="service-email-preview-message"></pre>
+                </div>
+                <p id="service-email-preview-status" class="email-send-status" role="status" aria-live="polite"></p>
+            </div>
+            <div class="modal-footer email-modal-footer">
+                <button id="service-email-preview-cancel" class="btn btn-secondary" type="button">Cancel</button>
+                <button id="service-email-preview-confirm" class="btn btn-primary" type="button">Confirm &amp; Send Email</button>
+            </div>
+        </section>
+    </div>
+
     <!-- App Scripts -->
-    <script src="/static/js/app.js?v=25"></script>
+    <script src="/static/js/app.js?v=26"></script>
 </body>
 </html>

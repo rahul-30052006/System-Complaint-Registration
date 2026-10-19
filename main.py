@@ -94,21 +94,53 @@ class ComplaintEmailRequest(EmailContentRequest):
     pass
 
 
+def email_delivery_http_exception(exc: Exception, complaint_id: Optional[int] = None) -> HTTPException:
+    if isinstance(exc, RuntimeError):
+        detail = str(exc)
+        if detail == "GMAIL_ADDRESS and GMAIL_APP_PASSWORD must be configured":
+            detail = "GMAIL_ADDRESS and GMAIL_APP_PASSWORD environment variables must be set."
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=detail,
+        )
+
+    context = f" for complaint #{complaint_id}" if complaint_id is not None else ""
+    logger.exception("SMTP email send failed%s", context)
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        if exc.smtp_code == 535:
+            detail = (
+                "Gmail rejected SMTP authentication (535). Check GMAIL_ADDRESS and the "
+                "16-character GMAIL_APP_PASSWORD in the project .env. Use a Google App "
+                "Password, not the account password, and confirm 2-Step Verification is enabled."
+            )
+        elif exc.smtp_code == 534:
+            detail = (
+                "Gmail requires an application-specific password (534). Create a Google "
+                "App Password and set it as GMAIL_APP_PASSWORD in the project .env."
+            )
+        else:
+            detail = f"SMTP authentication failed (code {exc.smtp_code}). Check the sender email and app password configuration."
+    elif isinstance(
+        exc,
+        (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, TimeoutError, OSError),
+    ):
+        detail = "Could not connect to Gmail SMTP on port 587. Check network access and firewall settings."
+    elif isinstance(exc, smtplib.SMTPRecipientsRefused):
+        detail = "The mail server rejected the recipient address. Verify the student's registered email address."
+    elif isinstance(exc, smtplib.SMTPDataError):
+        detail = f"The mail server rejected the message (SMTP code {exc.smtp_code})."
+    else:
+        detail = "Email delivery failed. Check the backend log and SMTP configuration."
+
+    return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
+
+
 @app.post("/send-email")
 def send_email(data: EmailRequest, admin: dict = Depends(require_admin)):
     try:
         send_custom_email(str(data.to_email), data.subject, data.message)
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GMAIL_ADDRESS and GMAIL_APP_PASSWORD environment variables must be set.",
-        ) from exc
-    except (smtplib.SMTPException, OSError) as exc:
-        logger.exception("SMTP email send failed")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Unable to send email. Check SMTP settings and credentials.",
-        ) from exc
+    except (RuntimeError, smtplib.SMTPException, OSError) as exc:
+        raise email_delivery_http_exception(exc) from exc
 
     return {"message": "Email sent successfully"}
 
@@ -147,17 +179,8 @@ def send_complaint_email(
 
     try:
         send_custom_email(recipient, data.subject, data.message)
-    except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GMAIL_ADDRESS and GMAIL_APP_PASSWORD environment variables must be set.",
-        ) from exc
-    except (smtplib.SMTPException, OSError) as exc:
-        logger.exception("SMTP email send failed for complaint #%s", complaint_id)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Unable to send email. Check SMTP settings and credentials.",
-        ) from exc
+    except (RuntimeError, smtplib.SMTPException, OSError) as exc:
+        raise email_delivery_http_exception(exc, complaint_id) from exc
 
     return {"message": "Email sent successfully"}
 

@@ -129,6 +129,27 @@ class EmailEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 502)
 
+    @patch.object(
+        main,
+        "send_custom_email",
+        side_effect=smtplib.SMTPAuthenticationError(535, b"credentials rejected"),
+    )
+    def test_send_email_endpoint_reports_actionable_authentication_failure(self, _send_custom_email):
+        response = self.client.post(
+            "/send-email",
+            headers=self.admin_headers,
+            json={
+                "to_email": "recipient@example.com",
+                "subject": "Hello",
+                "message": "Body",
+            },
+        )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("GMAIL_ADDRESS", response.json()["detail"])
+        self.assertIn("Google App Password", response.json()["detail"])
+        self.assertNotIn("credentials rejected", response.json()["detail"])
+
 
 class SMTPTransportTests(unittest.TestCase):
     @patch.dict(
