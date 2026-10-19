@@ -648,7 +648,7 @@ function openViewComplaint(complaintId) {
                             <label for="update-service-visit-date">Service visit date and time</label>
                             <div class="service-visit-inputs">
                                 <input id="update-service-visit-date" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" aria-label="Service visit date (DD/MM/YYYY)" aria-describedby="service-visit-format" value="${escapeHtml(formatServiceVisitDateInput(complaint.service_visit_at))}">
-                                <input id="update-service-visit-time" type="text" inputmode="text" placeholder="HH:MM AM/PM" aria-label="Service visit time (12-hour with AM/PM)" value="${escapeHtml(formatServiceVisitTimeInput(complaint.service_visit_at))}">
+                                <input id="update-service-visit-time" type="time" aria-label="Service visit time (12-hour with AM/PM)" value="${escapeHtml(formatServiceVisitTimeInput(complaint.service_visit_at))}">
                             </div>
                             <small id="service-visit-format">Enter the date as day/month/year; time uses 12-hour format (AM/PM).</small>
                         </div>
@@ -1145,16 +1145,12 @@ function formatServiceVisitDateInput(dateStr) {
 function formatServiceVisitTimeInput(dateStr) {
     if (!dateStr) return "";
     const match = /^\d{4}-\d{2}-\d{2}[T ](\d{2}):(\d{2})/.exec(String(dateStr));
-    if (!match) return "";
-    const hour = Number(match[1]);
-    const displayHour = String(hour % 12 || 12).padStart(2, "0");
-    const period = hour < 12 ? "AM" : "PM";
-    return `${displayHour}:${match[2]} ${period}`;
+    return match ? `${match[1]}:${match[2]}` : "";
 }
 
 function parseServiceVisitInput(dateValue, timeValue) {
     const trimmedDate = dateValue.trim();
-    const trimmedTime = timeValue.trim().toUpperCase();
+    const trimmedTime = timeValue.trim();
     if (!trimmedDate && !trimmedTime) return null;
     if (!trimmedDate || !trimmedTime) {
         throw new Error("Enter both the service visit date and time, or leave both empty.");
@@ -1165,13 +1161,13 @@ function parseServiceVisitInput(dateValue, timeValue) {
         throw new Error("Enter the service visit date as DD/MM/YYYY.");
     }
 
-    const timeMatch = /^(0[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/.exec(trimmedTime);
+    const timeMatch = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(trimmedTime);
     if (!timeMatch) {
-        throw new Error("Enter a valid service visit time in 12-hour HH:MM AM/PM format.");
+        throw new Error("Select a valid service visit time.");
     }
 
     const [, dayText, monthText, yearText] = match;
-    const [, hourText, minuteText, period] = timeMatch;
+    const [, hourText, minuteText] = timeMatch;
     const day = Number(dayText);
     const month = Number(monthText);
     const year = Number(yearText);
@@ -1201,8 +1197,7 @@ function parseServiceVisitInput(dateValue, timeValue) {
         throw new Error("Enter a valid service visit date.");
     }
 
-    const hour = Number(hourText) % 12 + (period === "PM" ? 12 : 0);
-    return `${yearText}-${monthText}-${dayText}T${String(hour).padStart(2, "0")}:${minuteText}`;
+    return `${yearText}-${monthText}-${dayText}T${hourText}:${minuteText}`;
 }
 
 function formatComplaintDate(dateStr) {
