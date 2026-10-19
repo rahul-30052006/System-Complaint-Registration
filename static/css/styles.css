@@ -1294,6 +1294,19 @@ body.modal-open {
     font-size: 0.84rem;
 }
 
+.service-visit-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+    gap: 0.5rem;
+}
+
+.complaint-update-form #service-visit-format {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
 .complaint-update-form textarea {
     min-height: 78px;
     resize: vertical;
