@@ -572,6 +572,25 @@ textarea:focus-visible {
     backdrop-filter: blur(8px);
 }
 
+#student-section .welcome-box {
+    padding: 1.1rem 1.35rem;
+    background: rgb(255 255 255 / 0.94);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+}
+
+#student-section .welcome-box h2 {
+    color: #0f172a;
+}
+
+#student-section .welcome-box p {
+    margin-top: 0.35rem;
+    color: #334155;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
 #admin-section .welcome-box h2 {
     color: #0f172a;
     font-size: clamp(1.35rem, 2.5vw, 1.8rem);
