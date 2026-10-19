@@ -63,6 +63,14 @@ A responsive complaint-management portal for reporting, tracking, and resolving 
 
 ---
 
+### SQLite database location
+
+By default, SQLite data is stored in `complaints.db` in the project directory,
+independent of the server's working directory. An optional `DATABASE_PATH`
+can override this location; relative override paths are also resolved from
+the project directory. Keep this file on persistent storage when deploying so
+user accounts and complaints survive application restarts.
+
 ## 🛠️ Getting Started
 
 ### 1. Create and activate a virtual environment

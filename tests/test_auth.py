@@ -1,6 +1,9 @@
 import os
+import importlib
 import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 import database
 import main
@@ -30,6 +33,16 @@ class AuthenticationFlowTests(unittest.TestCase):
             email=email,
             password="StrongTestPassword!",
         ))
+
+    def test_relative_database_path_is_anchored_to_project_directory(self):
+        project_dir = Path(database.__file__).resolve().parent
+        with patch.dict(os.environ, {"DATABASE_PATH": "data/complaints.db"}):
+            importlib.reload(database)
+
+        self.assertEqual(
+            Path(database.DB_PATH),
+            (project_dir / "data" / "complaints.db").resolve(),
+        )
 
     def test_signup_persists_student_fields_and_password_hash(self):
         result = self.register_student()
@@ -87,6 +100,16 @@ class AuthenticationFlowTests(unittest.TestCase):
 
         self.assertEqual(result["user"]["username"], "student-01")
         self.assertTrue(result["access_token"])
+
+    def test_login_with_username_ignores_case_and_surrounding_whitespace(self):
+        self.register_student(username="CampusUser")
+
+        result = main.login(LoginRequest(
+            login_id="  campususer  ",
+            password="StrongTestPassword!",
+        ))
+
+        self.assertEqual(result["user"]["username"], "CampusUser")
 
     def test_login_with_email_ignores_email_case(self):
         self.register_student(email="student@example.com")

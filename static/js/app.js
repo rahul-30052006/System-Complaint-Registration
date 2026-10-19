@@ -494,7 +494,11 @@ async function loadAdminStats() {
         statProgress.textContent = stats.in_progress;
         statResolved.textContent = stats.resolved;
     } catch (err) {
-        console.error("Failed to load admin stats", err);
+        statTotal.textContent = "—";
+        statPending.textContent = "—";
+        statProgress.textContent = "—";
+        statResolved.textContent = "—";
+        showToast(err.message || "Failed to load dashboard statistics.", "error");
     }
 }
 
@@ -510,20 +514,25 @@ async function loadAdminComplaints() {
 
     try {
         const data = await apiRequest(`/api/admin/complaints?${queryParams.toString()}`);
-        state.adminComplaints = data.complaints || [];
+        if (!data || !Array.isArray(data.complaints)) {
+            throw new Error("The server returned an invalid complaints response.");
+        }
+        state.adminComplaints = data.complaints;
         renderAdminComplaints(state.adminComplaints);
     } catch (err) {
+        state.adminComplaints = [];
+        renderAdminComplaints([], "Unable to load complaints. Refresh the dashboard to try again.");
         showToast(err.message || "Failed to load complaints table.", "error");
     }
 }
 
-function renderAdminComplaints(complaints) {
+function renderAdminComplaints(complaints, emptyMessage = "No complaints match your current filter criteria.") {
     if (!complaints.length) {
         adminComplaintsTbody.innerHTML = `
             <tr>
                 <td colspan="11" class="empty-state">
                     <div class="empty-state-icon">🔍</div>
-                    <p>No complaints match your current filter criteria.</p>
+                    <p>${escapeHtml(emptyMessage)}</p>
                 </td>
             </tr>
         `;

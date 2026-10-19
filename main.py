@@ -255,8 +255,9 @@ def login(req: LoginRequest):
         cursor.execute("""
             SELECT id, username, full_name, email, password_hash, role
             FROM users
-            WHERE username = ? OR lower(trim(email)) = ?
-        """, (identifier, identifier.lower()))
+            WHERE lower(trim(username)) = lower(trim(?))
+               OR lower(trim(email)) = lower(trim(?))
+        """, (identifier, identifier))
         user = cursor.fetchone()
     except sqlite3.Error:
         logger.exception("Student/admin sign-in failed during a SQLite operation")
@@ -340,35 +341,46 @@ def submit_complaint(complaint: ComplaintCreate, user: dict = Depends(require_st
     
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    cursor.execute("""
-        INSERT INTO complaints (
-            student_id, student_name, student_roll, complaint_date, department, lab_name,
-            lab_location, system_no, issue_type, priority, description,
-            status, assigned_technician, repair_action, admin_remarks,
-            rectified_date, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', '', '', NULL, ?, ?)
-    """, (
-        user["id"],
-        user["full_name"],
-        user["username"],
-        complaint.complaint_date.isoformat(),
-        complaint.department.strip(),
-        complaint.lab_name.strip(),
-        complaint.lab_location.strip(),
-        complaint.system_no.strip(),
-        complaint.issue_type.strip(),
-        complaint.priority,
-        complaint.description.strip(),
-        now,
-        now
-    ))
-    
-    complaint_id = cursor.lastrowid
-    conn.commit()
-    
-    cursor.execute("SELECT * FROM complaints WHERE id = ?", (complaint_id,))
-    row = dict(cursor.fetchone())
-    conn.close()
+    try:
+        cursor.execute("""
+            INSERT INTO complaints (
+                student_id, student_name, student_roll, complaint_date, department, lab_name,
+                lab_location, system_no, issue_type, priority, description,
+                status, assigned_technician, repair_action, admin_remarks,
+                rectified_date, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', '', '', '', NULL, ?, ?)
+        """, (
+            user["id"],
+            user["full_name"],
+            user["username"],
+            complaint.complaint_date.isoformat(),
+            complaint.department.strip(),
+            complaint.lab_name.strip(),
+            complaint.lab_location.strip(),
+            complaint.system_no.strip(),
+            complaint.issue_type.strip(),
+            complaint.priority,
+            complaint.description.strip(),
+            now,
+            now
+        ))
+
+        complaint_id = cursor.lastrowid
+        cursor.execute("SELECT * FROM complaints WHERE id = ?", (complaint_id,))
+        saved_complaint = cursor.fetchone()
+        if saved_complaint is None:
+            raise sqlite3.DatabaseError("Inserted complaint could not be read back")
+        row = dict(saved_complaint)
+        conn.commit()
+    except sqlite3.Error as exc:
+        conn.rollback()
+        logger.exception("Complaint submission failed during a SQLite operation")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to save the complaint. Please try again.",
+        ) from exc
+    finally:
+        conn.close()
     
     return {"message": "Complaint submitted successfully", "complaint": row}
 
@@ -395,71 +407,79 @@ def get_all_complaints(
     admin: dict = Depends(require_admin)
 ):
     conn = get_db()
-    cursor = conn.cursor()
-    query = """
-        SELECT c.*, u.email AS student_email
-        FROM complaints c
-        LEFT JOIN users u ON u.id = c.student_id
-        WHERE 1 = 1
-    """
-    params = []
-    
-    if status_filter and status_filter.lower() != "all":
-        query += " AND status = ?"
-        params.append(status_filter)
-        
-    if lab_filter and lab_filter.lower() != "all":
-        query += " AND lab_name = ?"
-        params.append(lab_filter)
-        
-    if search:
-        search_term = f"%{search.strip()}%"
-        query += " AND (student_name LIKE ? OR student_roll LIKE ? OR department LIKE ? OR lab_name LIKE ? OR lab_location LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ? OR assigned_technician LIKE ? OR repair_action LIKE ? OR admin_remarks LIKE ?)"
-        params.extend([search_term] * 11)
-        
-    query += " ORDER BY c.id DESC"
-    
-    cursor.execute(query, tuple(params))
-    rows = [dict(r) for r in cursor.fetchall()]
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT c.*, u.email AS student_email
+            FROM complaints c
+            LEFT JOIN users u ON u.id = c.student_id
+            WHERE 1 = 1
+        """
+        params = []
+
+        if status_filter and status_filter.lower() != "all":
+            query += " AND status = ?"
+            params.append(status_filter)
+
+        if lab_filter and lab_filter.lower() != "all":
+            query += " AND lab_name = ?"
+            params.append(lab_filter)
+
+        if search:
+            search_term = f"%{search.strip()}%"
+            query += " AND (student_name LIKE ? OR student_roll LIKE ? OR department LIKE ? OR lab_name LIKE ? OR lab_location LIKE ? OR system_no LIKE ? OR issue_type LIKE ? OR description LIKE ? OR assigned_technician LIKE ? OR repair_action LIKE ? OR admin_remarks LIKE ?)"
+            params.extend([search_term] * 11)
+
+        query += " ORDER BY c.id DESC"
+
+        cursor.execute(query, tuple(params))
+        rows = [dict(r) for r in cursor.fetchall()]
+    except sqlite3.Error:
+        logger.exception("Admin complaint listing failed during a SQLite operation")
+        raise
+    finally:
+        conn.close()
     return {"complaints": rows}
 
 @app.get("/api/admin/stats")
 def get_admin_stats(admin: dict = Depends(require_admin)):
     conn = get_db()
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) as total FROM complaints")
-    total = cursor.fetchone()["total"]
+        cursor.execute("SELECT COUNT(*) as total FROM complaints")
+        total = cursor.fetchone()["total"]
 
-    cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Pending'")
-    pending = cursor.fetchone()["count"]
+        cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Pending'")
+        pending = cursor.fetchone()["count"]
 
-    cursor.execute(
-        "SELECT COUNT(*) as count FROM complaints "
-        "WHERE status IN ('In Progress', 'Technician Assigned')"
-    )
-    in_progress = cursor.fetchone()["count"]
+        cursor.execute(
+            "SELECT COUNT(*) as count FROM complaints "
+            "WHERE status IN ('In Progress', 'Technician Assigned')"
+        )
+        in_progress = cursor.fetchone()["count"]
 
-    cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Resolved'")
-    resolved = cursor.fetchone()["count"]
+        cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Resolved'")
+        resolved = cursor.fetchone()["count"]
 
-    cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Rejected'")
-    rejected = cursor.fetchone()["count"]
-    
-    # Complaints grouped by lab
-    cursor.execute(
-        "SELECT lab_name, COUNT(*) as count FROM complaints GROUP BY lab_name"
-    )
-    by_lab = [dict(r) for r in cursor.fetchall()]
-    
-    # Complaints grouped by issue type
-    cursor.execute(
-        "SELECT issue_type, COUNT(*) as count FROM complaints GROUP BY issue_type"
-    )
-    by_issue = [dict(r) for r in cursor.fetchall()]
-    
-    conn.close()
+        cursor.execute("SELECT COUNT(*) as count FROM complaints WHERE status = 'Rejected'")
+        rejected = cursor.fetchone()["count"]
+
+        cursor.execute(
+            "SELECT lab_name, COUNT(*) as count FROM complaints GROUP BY lab_name"
+        )
+        by_lab = [dict(r) for r in cursor.fetchall()]
+
+        cursor.execute(
+            "SELECT issue_type, COUNT(*) as count FROM complaints GROUP BY issue_type"
+        )
+        by_issue = [dict(r) for r in cursor.fetchall()]
+    except sqlite3.Error:
+        logger.exception("Admin complaint statistics failed during a SQLite operation")
+        raise
+    finally:
+        conn.close()
+
     return {
         "total": total,
         "pending": pending,
@@ -467,7 +487,7 @@ def get_admin_stats(admin: dict = Depends(require_admin)):
         "resolved": resolved,
         "rejected": rejected,
         "by_lab": by_lab,
-        "by_issue_type": by_issue
+        "by_issue_type": by_issue,
     }
 
 @app.patch("/api/admin/complaints/{complaint_id}")

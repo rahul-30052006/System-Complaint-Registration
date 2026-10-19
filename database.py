@@ -1,14 +1,20 @@
 import sqlite3
 import os
 from datetime import datetime
+from pathlib import Path
 
-DB_PATH = os.environ.get(
-    "DATABASE_PATH",
-    os.path.join(os.path.dirname(__file__), "complaints.db"),
-)
+PROJECT_DIR = Path(__file__).resolve().parent
+configured_db_path = os.environ.get("DATABASE_PATH", "").strip()
+if configured_db_path:
+    database_path = Path(configured_db_path).expanduser()
+    if not database_path.is_absolute():
+        database_path = PROJECT_DIR / database_path
+else:
+    database_path = PROJECT_DIR / "complaints.db"
+DB_PATH = str(database_path.resolve())
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
     conn.row_factory = sqlite3.Row
     return conn
 

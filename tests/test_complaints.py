@@ -167,6 +167,112 @@ class ComplaintWorkflowTests(unittest.TestCase):
         ):
             self.assertIn(field, admin_ticket)
 
+    def test_signup_login_complaint_persistence_after_reinitialization_and_admin_relogin(self):
+        signup = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "persistent-user",
+                "full_name": "Persistent User",
+                "email": "persistent-user@example.com",
+                "password": "StrongPassword123!",
+            },
+        )
+        self.assertEqual(signup.status_code, 201)
+        student_login = self.client.post(
+            "/api/auth/login",
+            json={
+                "login_id": "persistent-user",
+                "password": "StrongPassword123!",
+            },
+        )
+        self.assertEqual(student_login.status_code, 200)
+        student_headers = {
+            "Authorization": f"Bearer {student_login.json()['access_token']}"
+        }
+
+        complaint_response = self.client.post(
+            "/api/complaints",
+            headers=student_headers,
+            json={
+                "complaint_date": "2026-10-19",
+                "department": "Engineering",
+                "lab_name": "Main Lab",
+                "lab_location": "Block C",
+                "system_no": "PC-PERSIST",
+                "issue_type": "Hardware",
+                "priority": "High",
+                "description": "The test workstation does not start.",
+            },
+        )
+        self.assertEqual(complaint_response.status_code, 201)
+        complaint_id = complaint_response.json()["complaint"]["id"]
+
+        conn = database.get_db()
+        saved = conn.execute(
+            "SELECT student_id, system_no FROM complaints WHERE id = ?",
+            (complaint_id,),
+        ).fetchone()
+        conn.close()
+        self.assertIsNotNone(saved)
+        self.assertEqual(saved["student_id"], signup.json()["user"]["id"])
+        self.assertEqual(saved["system_no"], "PC-PERSIST")
+
+        database.init_db()
+        invalid_login = self.client.post(
+            "/api/auth/login",
+            json={
+                "login_id": "persistent-user",
+                "password": "WrongPassword123!",
+            },
+        )
+        self.assertEqual(invalid_login.status_code, 401)
+
+        admin_login = self.client.post(
+            "/api/auth/login",
+            json={
+                "login_id": "repair-admin",
+                "password": "AdminPassword123!",
+            },
+        )
+        self.assertEqual(admin_login.status_code, 200)
+        admin_headers = {
+            "Authorization": f"Bearer {admin_login.json()['access_token']}"
+        }
+        dashboard = self.client.get(
+            "/api/admin/complaints",
+            headers=admin_headers,
+            params={"search": "PC-PERSIST"},
+        )
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertEqual(
+            [item["id"] for item in dashboard.json()["complaints"]],
+            [complaint_id],
+        )
+        stats = self.client.get("/api/admin/stats", headers=admin_headers)
+        self.assertEqual(stats.status_code, 200)
+        self.assertEqual(stats.json()["total"], 1)
+
+    def test_empty_database_returns_no_default_complaints_or_statistics(self):
+        complaints = self.client.get(
+            "/api/admin/complaints",
+            headers=self.admin_headers,
+        )
+        self.assertEqual(complaints.status_code, 200)
+        self.assertEqual(complaints.json()["complaints"], [])
+
+        filtered = self.client.get(
+            "/api/admin/complaints",
+            headers=self.admin_headers,
+            params={"lab": "UG Lab", "status": "Pending"},
+        )
+        self.assertEqual(filtered.status_code, 200)
+        self.assertEqual(filtered.json()["complaints"], [])
+
+        stats = self.client.get("/api/admin/stats", headers=self.admin_headers)
+        self.assertEqual(stats.status_code, 200)
+        self.assertEqual(stats.json()["total"], 0)
+        self.assertEqual(stats.json()["pending"], 0)
+
     def test_technician_assigned_requires_name_and_visit_time_and_is_admin_only(self):
         complaint_response = self.client.post(
             "/api/complaints",
