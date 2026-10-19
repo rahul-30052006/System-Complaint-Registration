@@ -605,7 +605,7 @@ function openViewComplaint(complaintId) {
             fields: [
                 field("Assigned Technician", value(complaint.assigned_technician, "Not assigned")),
                 field("Technician Contact", value(complaint.technician_contact, "Not provided")),
-                field("Expected Service Date", value(formatServiceVisit(complaint.service_visit_at))),
+                field("Expected Service Date", value(formatAdminServiceVisit(complaint.service_visit_at))),
                 field("Repair Action Taken", value(complaint.repair_action, "None")),
                 field("Rectified Date", value(complaint.rectified_date, "Not rectified"))
             ]
@@ -648,9 +648,9 @@ function openViewComplaint(complaintId) {
                             <label for="update-service-visit-date">Service visit date and time</label>
                             <div class="service-visit-inputs">
                                 <input id="update-service-visit-date" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" aria-label="Service visit date (DD/MM/YYYY)" aria-describedby="service-visit-format" value="${escapeHtml(formatServiceVisitDateInput(complaint.service_visit_at))}">
-                                <input id="update-service-visit-time" type="time" aria-label="Service visit time (24-hour)" value="${escapeHtml(formatServiceVisitTimeInput(complaint.service_visit_at))}">
+                                <input id="update-service-visit-time" type="text" inputmode="text" placeholder="HH:MM AM/PM" aria-label="Service visit time (12-hour with AM/PM)" value="${escapeHtml(formatServiceVisitTimeInput(complaint.service_visit_at))}">
                             </div>
-                            <small id="service-visit-format">Enter the date as day/month/year; time uses 24-hour format.</small>
+                            <small id="service-visit-format">Enter the date as day/month/year; time uses 12-hour format (AM/PM).</small>
                         </div>
                         <div class="form-group">
                             <label for="update-status">Complaint status</label>
@@ -772,7 +772,7 @@ async function sendServiceAssignmentEmail() {
         return;
     }
 
-    const serviceVisit = `${serviceVisitAt.slice(8, 10)}/${serviceVisitAt.slice(5, 7)}/${serviceVisitAt.slice(0, 4)} ${serviceVisitAt.slice(11, 16)}`;
+    const serviceVisit = formatAdminServiceVisit(serviceVisitAt);
     const message = [
         "Dear User,",
         "",
@@ -1123,6 +1123,17 @@ function formatServiceVisit(dateStr) {
     }
 }
 
+function formatAdminServiceVisit(dateStr) {
+    if (!dateStr) return "Not scheduled";
+    const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(dateStr));
+    if (!match) return String(dateStr);
+    const [, year, month, day, hourText, minute] = match;
+    const hour = Number(hourText);
+    const displayHour = hour % 12 || 12;
+    const period = hour < 12 ? "AM" : "PM";
+    return `${day}/${month}/${year} ${String(displayHour).padStart(2, "0")}:${minute} ${period}`;
+}
+
 function formatServiceVisitDateInput(dateStr) {
     if (!dateStr) return "";
     const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(dateStr));
@@ -1134,12 +1145,16 @@ function formatServiceVisitDateInput(dateStr) {
 function formatServiceVisitTimeInput(dateStr) {
     if (!dateStr) return "";
     const match = /^\d{4}-\d{2}-\d{2}[T ](\d{2}):(\d{2})/.exec(String(dateStr));
-    return match ? `${match[1]}:${match[2]}` : "";
+    if (!match) return "";
+    const hour = Number(match[1]);
+    const displayHour = String(hour % 12 || 12).padStart(2, "0");
+    const period = hour < 12 ? "AM" : "PM";
+    return `${displayHour}:${match[2]} ${period}`;
 }
 
 function parseServiceVisitInput(dateValue, timeValue) {
     const trimmedDate = dateValue.trim();
-    const trimmedTime = timeValue.trim();
+    const trimmedTime = timeValue.trim().toUpperCase();
     if (!trimmedDate && !trimmedTime) return null;
     if (!trimmedDate || !trimmedTime) {
         throw new Error("Enter both the service visit date and time, or leave both empty.");
@@ -1150,12 +1165,13 @@ function parseServiceVisitInput(dateValue, timeValue) {
         throw new Error("Enter the service visit date as DD/MM/YYYY.");
     }
 
-    const timeMatch = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(trimmedTime);
+    const timeMatch = /^(0[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/.exec(trimmedTime);
     if (!timeMatch) {
-        throw new Error("Enter a valid service visit time in 24-hour HH:MM format.");
+        throw new Error("Enter a valid service visit time in 12-hour HH:MM AM/PM format.");
     }
 
     const [, dayText, monthText, yearText] = match;
+    const [, hourText, minuteText, period] = timeMatch;
     const day = Number(dayText);
     const month = Number(monthText);
     const year = Number(yearText);
@@ -1185,7 +1201,8 @@ function parseServiceVisitInput(dateValue, timeValue) {
         throw new Error("Enter a valid service visit date.");
     }
 
-    return `${yearText}-${monthText}-${dayText}T${trimmedTime}`;
+    const hour = Number(hourText) % 12 + (period === "PM" ? 12 : 0);
+    return `${yearText}-${monthText}-${dayText}T${String(hour).padStart(2, "0")}:${minuteText}`;
 }
 
 function formatComplaintDate(dateStr) {
