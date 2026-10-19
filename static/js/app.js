@@ -423,7 +423,7 @@ function renderStudentComplaints(complaints) {
         <div class="complaint-card">
             <div class="complaint-card-header">
                 <div>
-                    <span class="complaint-system-badge">Lab No: ${escapeHtml(c.system_no)}</span>
+                    <span class="complaint-system-badge">System No: ${escapeHtml(c.system_no)}</span>
                     <div class="complaint-lab-name">Lab Name: ${escapeHtml(c.lab_name)}</div>
                     <div class="complaint-lab-name">Lab Location: ${escapeHtml(c.lab_location || "Not specified")}</div>
                 </div>
