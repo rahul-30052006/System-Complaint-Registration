@@ -8,7 +8,7 @@ from datetime import datetime
 from database import get_db, init_db
 from auth import hash_password
 
-def create_or_update_admin(username="rahul", email="rahulrsrahul54@mail.com", password="rahul2006", full_name="Lab Administrator"):
+def create_or_update_admin(username="admin", email="admin@lab.local", password="admin123", full_name="Lab Administrator"):
     init_db()
     conn = get_db()
     cursor = conn.cursor()
