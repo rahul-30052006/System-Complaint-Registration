@@ -163,7 +163,7 @@ function initEvents() {
         assignmentForm.querySelector("#update-status").focus({ preventScroll: true });
     });
     viewComplaintEmail.addEventListener("click", () => {
-        openEmailModal(viewComplaintModal.dataset.complaintId);
+        sendServiceAssignmentEmail();
     });
     viewComplaintModal.addEventListener("click", event => {
         if (event.target === viewComplaintModal) closeViewComplaint();
@@ -715,6 +715,70 @@ function closeEmailModal() {
     syncModalScrollLock();
     emailComposeForm.reset();
     emailSendStatus.textContent = "";
+}
+
+async function sendServiceAssignmentEmail() {
+    const complaintId = viewComplaintModal.dataset.complaintId;
+    const form = document.getElementById("complaint-update-form");
+    const feedback = form?.querySelector("#complaint-update-status");
+    if (!complaintId || !form || !feedback || viewComplaintEmail.disabled) return;
+
+    let serviceVisitAt;
+    try {
+        serviceVisitAt = parseServiceVisitInput(
+            form.querySelector("#update-service-visit-date").value,
+            form.querySelector("#update-service-visit-time").value
+        );
+    } catch (err) {
+        feedback.textContent = err.message;
+        feedback.className = "complaint-update-status is-error";
+        form.querySelector("#update-service-visit-date").focus();
+        return;
+    }
+
+    const technicianName = form.querySelector("#update-technician").value.trim() || "Not assigned";
+    const technicianContact = form.querySelector("#update-technician-contact").value.trim() || "Not provided";
+    const serviceVisit = serviceVisitAt
+        ? `${serviceVisitAt.slice(8, 10)}/${serviceVisitAt.slice(5, 7)}/${serviceVisitAt.slice(0, 4)} ${serviceVisitAt.slice(11, 16)}`
+        : "Not scheduled";
+    const complaintStatus = form.querySelector("#update-status").value;
+    const message = [
+        "Dear Student,",
+        "",
+        "Your system complaint service assignment has been updated. Please find the details below:",
+        "",
+        `- Technician Name: ${technicianName}`,
+        `- Technician Contact Details: ${technicianContact}`,
+        `- Service Visit Date and Time: ${serviceVisit}`,
+        `- Complaint Status: ${complaintStatus}`,
+        "",
+        "Please contact the assigned technician using the contact details above if needed.",
+        "",
+        "Regards,",
+        "System Complaint Registration Team"
+    ].join("\n");
+
+    viewComplaintEmail.disabled = true;
+    const originalButtonText = viewComplaintEmail.textContent;
+    viewComplaintEmail.textContent = "Sending...";
+    feedback.textContent = "Sending service assignment email...";
+    feedback.className = "complaint-update-status is-loading";
+    try {
+        await apiRequest(`/api/admin/complaints/${complaintId}/email`, "POST", {
+            subject: "System Complaint – Service Assignment Update",
+            message
+        });
+        feedback.textContent = "Service assignment email sent to the student's registered address.";
+        feedback.className = "complaint-update-status is-success";
+        showToast(feedback.textContent, "success");
+    } catch (err) {
+        feedback.textContent = err.message || "Unable to send the service assignment email. Please try again.";
+        feedback.className = "complaint-update-status is-error";
+        showToast(feedback.textContent, "error");
+    } finally {
+        viewComplaintEmail.disabled = false;
+        viewComplaintEmail.textContent = originalButtonText;
+    }
 }
 
 async function handleSendEmail(event) {
