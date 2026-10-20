@@ -25,6 +25,7 @@ const adminLoginLink = document.getElementById("admin-login-link");
 // Auth Elements
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
+const signupUsernameInput = document.getElementById("signup-username");
 const tabButtons = document.querySelectorAll(".auth-tabs .tab-btn");
 const authPanels = document.querySelectorAll(".auth-panel");
 
@@ -114,6 +115,8 @@ function initEvents() {
     // Forms
     loginForm.addEventListener("submit", handleLogin);
     signupForm.addEventListener("submit", handleSignup);
+    signupUsernameInput.addEventListener("input", validateSignupUsername);
+    signupUsernameInput.addEventListener("blur", validateSignupUsername);
     complaintForm.addEventListener("submit", handleCreateComplaint);
     labNameSelect.addEventListener("change", toggleCustomLabInput);
     complaintForm.addEventListener("reset", () => {
@@ -258,13 +261,17 @@ async function handleLogin(e) {
 
 async function handleSignup(e) {
     e.preventDefault();
+    if (!validateSignupUsername()) {
+        signupUsernameInput.reportValidity();
+        return;
+    }
     if (state.authRequestPending) return;
     state.authRequestPending = true;
     const submitButton = signupForm.querySelector('button[type="submit"]');
     submitButton.disabled = true;
     const originalButtonText = submitButton.textContent;
     submitButton.textContent = "Creating account...";
-    const username = document.getElementById("signup-username").value.trim();
+    const username = signupUsernameInput.value.trim();
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
 
@@ -290,6 +297,16 @@ async function handleSignup(e) {
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
     }
+}
+
+function validateSignupUsername() {
+    const value = signupUsernameInput.value;
+    const length = Array.from(value.trim()).length;
+    const isValid = value.length === 0 || (length >= 3 && length <= 50);
+    signupUsernameInput.setCustomValidity(
+        isValid ? "" : "Username must be between 3 and 50 characters."
+    );
+    return isValid;
 }
 
 function handleLogout() {

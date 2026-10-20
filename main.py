@@ -3,7 +3,7 @@ import logging
 import sqlite3
 import smtplib
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -49,6 +49,11 @@ class RegisterRequest(BaseModel):
     full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     email: EmailStr = Field(..., max_length=100)
     password: str = Field(..., min_length=4, max_length=100)
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def normalize_username(cls, username: Any) -> Any:
+        return username.strip() if isinstance(username, str) else username
 
 class LoginRequest(BaseModel):
     login_id: str = Field(..., description="Username, Roll Number or Email")
@@ -191,7 +196,7 @@ def register_student(req: RegisterRequest):
     conn = get_db()
     cursor = conn.cursor()
 
-    username = req.username.strip()
+    username = req.username
     full_name = (req.full_name or "").strip() or username
     email = req.email.strip().lower()
     try:

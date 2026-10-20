@@ -260,6 +260,46 @@ class AuthenticationFlowTests(unittest.TestCase):
         self.assertEqual(duplicate_username.status_code, 400)
         self.assertEqual(duplicate_email.status_code, 400)
 
+    def test_api_validates_normalized_username_length(self):
+        for index, username in enumerate(("  ab  ", "   ", "u" * 51)):
+            with self.subTest(username_length=len(username)):
+                response = self.client.post(
+                    "/api/auth/register",
+                    json={
+                        "username": username,
+                        "email": f"invalid-name-{index}@example.com",
+                        "password": "StrongTestPassword!",
+                    },
+                )
+                self.assertEqual(response.status_code, 422)
+                self.assertTrue(any(
+                    issue["loc"][-1] == "username"
+                    for issue in response.json()["detail"]
+                ))
+
+        minimum = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "  abc  ",
+                "email": "minimum-name@example.com",
+                "password": "StrongTestPassword!",
+            },
+        )
+        maximum_username = "u" * 50
+        maximum = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": maximum_username,
+                "email": "maximum-name@example.com",
+                "password": "StrongTestPassword!",
+            },
+        )
+
+        self.assertEqual(minimum.status_code, 201)
+        self.assertEqual(minimum.json()["user"]["username"], "abc")
+        self.assertEqual(maximum.status_code, 201)
+        self.assertEqual(maximum.json()["user"]["username"], maximum_username)
+
     def test_auth_api_returns_401_for_unknown_user_and_wrong_password(self):
         self.register_student()
         unknown = self.client.post(
