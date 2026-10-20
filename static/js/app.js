@@ -237,7 +237,7 @@ async function handleLogin(e) {
 
     try {
         const data = await apiRequest("/api/auth/login", "POST", { login_id, password });
-        if (data.user.role !== "student") {
+        if (!["user", "student"].includes(data.user.role)) {
             showToast("This account uses a different login page.", "error");
             return;
         }
@@ -349,7 +349,7 @@ function showDashboardView() {
         loadAdminData();
     } else {
         populateComplaintStudentFields();
-        userRoleBadge.textContent = "Student";
+        userRoleBadge.textContent = "User";
         userRoleBadge.className = "badge badge-student";
         adminLoginLink.style.display = "none";
         adminSection.style.display = "none";

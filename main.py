@@ -45,7 +45,7 @@ app.add_middleware(
 # ----------------- Pydantic Models -----------------
 
 class RegisterRequest(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, description="Roll Number or Username")
+    username: str = Field(..., min_length=3, max_length=50, description="Username")
     full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     email: EmailStr = Field(..., max_length=100)
     password: str = Field(..., min_length=4, max_length=100)
@@ -56,7 +56,7 @@ class RegisterRequest(BaseModel):
         return username.strip() if isinstance(username, str) else username
 
 class LoginRequest(BaseModel):
-    login_id: str = Field(..., description="Username, Roll Number or Email")
+    login_id: str = Field(..., description="Username or Email")
     password: str = Field(..., min_length=1)
 
 class ComplaintCreate(BaseModel):
@@ -191,7 +191,11 @@ def send_complaint_email(
 
 # ----------------- Auth Routes -----------------
 
-@app.post("/api/auth/register", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/auth/register",
+    status_code=status.HTTP_201_CREATED,
+    summary="Register User",
+)
 def register_student(req: RegisterRequest):
     conn = get_db()
     cursor = conn.cursor()
@@ -230,7 +234,7 @@ def register_student(req: RegisterRequest):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute("""
             INSERT INTO users (username, full_name, email, password_hash, role, created_at)
-            VALUES (?, ?, ?, ?, 'student', ?)
+            VALUES (?, ?, ?, ?, 'user', ?)
         """, (username, full_name, email, pwd_hash, now))
 
         new_user_id = cursor.lastrowid
@@ -251,22 +255,22 @@ def register_student(req: RegisterRequest):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=detail,
             ) from exc
-        logger.exception("Student registration failed due to a database constraint")
+        logger.exception("User registration failed due to a database constraint")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration could not be completed because of a database constraint.",
         ) from exc
     except sqlite3.Error:
         conn.rollback()
-        logger.exception("Student registration failed during a SQLite operation")
+        logger.exception("User registration failed during a SQLite operation")
         raise
     finally:
         conn.close()
 
-    token = create_access_token({"sub": new_user_id, "username": username, "role": "student"})
+    token = create_access_token({"sub": new_user_id, "username": username, "role": "user"})
     
     return {
-        "message": "Student registered successfully",
+        "message": "User registered successfully",
         "access_token": token,
         "token_type": "bearer",
         "user": {
@@ -274,7 +278,7 @@ def register_student(req: RegisterRequest):
             "username": username,
             "full_name": full_name,
             "email": email,
-            "role": "student"
+            "role": "user"
         }
     }
 
@@ -293,7 +297,7 @@ def login(req: LoginRequest):
         """, (identifier, identifier))
         user = cursor.fetchone()
     except sqlite3.Error:
-        logger.exception("Student/admin sign-in failed during a SQLite operation")
+        logger.exception("User/admin sign-in failed during a SQLite operation")
         raise
     finally:
         conn.close()

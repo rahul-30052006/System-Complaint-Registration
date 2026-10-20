@@ -119,10 +119,10 @@ def require_admin(user: dict = Depends(get_current_user)) -> dict:
     return user
 
 def require_student(user: dict = Depends(get_current_user)) -> dict:
-    """Ensures the authenticated user has the 'student' role."""
-    if user.get("role") != "student":
+    """Allows regular users, including accounts created before the role rename."""
+    if user.get("role") not in {"user", "student"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Student privileges required"
+            detail="User privileges required"
         )
     return user

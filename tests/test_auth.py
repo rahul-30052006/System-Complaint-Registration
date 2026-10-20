@@ -143,6 +143,21 @@ class AuthenticationFlowTests(unittest.TestCase):
 
         self.assertEqual(result["user"]["username"], "legacy-student")
 
+        response = self.client.post(
+            "/api/auth/login",
+            json={
+                "login_id": "legacy-student",
+                "password": "StrongTestPassword!",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["role"], "student")
+        complaints = self.client.get(
+            "/api/complaints/my",
+            headers={"Authorization": f"Bearer {response.json()['access_token']}"},
+        )
+        self.assertEqual(complaints.status_code, 200)
+
     def test_incorrect_password_is_rejected(self):
         self.register_student()
 
@@ -214,8 +229,14 @@ class AuthenticationFlowTests(unittest.TestCase):
             },
         )
         self.assertEqual(registered.status_code, 201)
+        self.assertEqual(registered.json()["message"], "User registered successfully")
+        self.assertEqual(registered.json()["user"]["role"], "user")
         self.assertNotIn("password", registered.json())
         self.assertNotIn("password_hash", registered.json())
+        self.assertEqual(
+            self.client.get("/openapi.json").json()["paths"]["/api/auth/register"]["post"]["summary"],
+            "Register User",
+        )
 
         for identifier in ("roll-2026", "API.TEST@EXAMPLE.COM"):
             with self.subTest(identifier=identifier):
