@@ -569,7 +569,8 @@ function renderAdminComplaints(complaints, emptyMessage = "No complaints match y
 }
 
 function openViewComplaint(complaintId) {
-    const complaint = state.adminComplaints.find(item => String(item.id) === String(complaintId));
+    const complaintIndex = state.adminComplaints.findIndex(item => String(item.id) === String(complaintId));
+    const complaint = state.adminComplaints[complaintIndex];
     if (!complaint) {
         showToast("Complaint not found. Refresh the list and try again.", "error");
         return;
@@ -627,7 +628,7 @@ function openViewComplaint(complaintId) {
         }
     ];
 
-    viewComplaintTitle.textContent = `Complaint No: ${complaint.id}`;
+    viewComplaintTitle.textContent = `Complaint No: ${complaintIndex + 1}`;
     viewComplaintStatus.textContent = complaint.status || "Unknown";
     viewComplaintStatus.className = `status-badge status-${String(complaint.status || "").toLowerCase().replace(/\s+/g, "-")}`;
     viewComplaintContent.innerHTML = `
@@ -668,10 +669,6 @@ function openViewComplaint(complaintId) {
                                     <option value="${status}" ${complaint.status === status ? "selected" : ""}>${status}</option>
                                 `).join("")}
                             </select>
-                        </div>
-                        <div class="form-group service-form-wide">
-                            <label for="update-repair-action">Repair action or service instructions</label>
-                            <textarea id="update-repair-action" rows="3" maxlength="2000" placeholder="Repair action taken or instructions for the service visit">${escapeHtml(complaint.repair_action || "")}</textarea>
                         </div>
                     </div>
                     <p id="complaint-update-status" class="complaint-update-status" role="status" aria-live="polite"></p>
@@ -945,7 +942,7 @@ async function handleUpdateStatus(event) {
             assigned_technician: form.querySelector("#update-technician").value.trim(),
             technician_contact: form.querySelector("#update-technician-contact").value.trim(),
             service_visit_at: serviceVisitAt,
-            repair_action: form.querySelector("#update-repair-action").value.trim()
+            repair_action: currentComplaint.repair_action || ""
         });
 
         state.adminComplaints = state.adminComplaints.map(complaint =>
