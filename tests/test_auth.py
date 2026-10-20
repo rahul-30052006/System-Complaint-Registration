@@ -259,6 +259,14 @@ class AuthenticationFlowTests(unittest.TestCase):
         )
         self.assertEqual(duplicate_username.status_code, 400)
         self.assertEqual(duplicate_email.status_code, 400)
+        self.assertEqual(
+            duplicate_username.json()["detail"],
+            "This username is already registered. Choose a different username.",
+        )
+        self.assertEqual(
+            duplicate_email.json()["detail"],
+            "This email address is already registered. Sign in or use a different email.",
+        )
 
     def test_api_validates_normalized_username_length(self):
         for index, username in enumerate(("  ab  ", "   ", "u" * 51)):

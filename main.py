@@ -202,15 +202,28 @@ def register_student(req: RegisterRequest):
     try:
         cursor.execute("BEGIN IMMEDIATE")
         cursor.execute("""
-            SELECT id FROM users
-            WHERE lower(trim(username)) = lower(trim(?))
-               OR lower(trim(email)) = lower(trim(?))
+            SELECT
+                EXISTS(
+                    SELECT 1 FROM users
+                    WHERE lower(trim(username)) = lower(trim(?))
+                ) AS username_exists,
+                EXISTS(
+                    SELECT 1 FROM users
+                    WHERE lower(trim(email)) = lower(trim(?))
+                ) AS email_exists
         """, (username, email))
-        if cursor.fetchone():
+        conflicts = cursor.fetchone()
+        if conflicts["username_exists"] or conflicts["email_exists"]:
             conn.rollback()
+            if conflicts["username_exists"] and conflicts["email_exists"]:
+                detail = "This username and email address are already registered. Use different signup details."
+            elif conflicts["username_exists"]:
+                detail = "This username is already registered. Choose a different username."
+            else:
+                detail = "This email address is already registered. Sign in or use a different email."
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Student with this Roll Number/Username or Email already exists"
+                detail=detail,
             )
 
         pwd_hash = hash_password(req.password)
@@ -222,12 +235,27 @@ def register_student(req: RegisterRequest):
 
         new_user_id = cursor.lastrowid
         conn.commit()
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as exc:
         conn.rollback()
+        constraint = str(exc).casefold()
+        username_conflict = "users.username" in constraint
+        email_conflict = "users.email" in constraint
+        if username_conflict or email_conflict:
+            if username_conflict and email_conflict:
+                detail = "This username and email address are already registered. Use different signup details."
+            elif username_conflict:
+                detail = "This username is already registered. Choose a different username."
+            else:
+                detail = "This email address is already registered. Sign in or use a different email."
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=detail,
+            ) from exc
+        logger.exception("Student registration failed due to a database constraint")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Student with this Roll Number/Username or Email already exists"
-        )
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration could not be completed because of a database constraint.",
+        ) from exc
     except sqlite3.Error:
         conn.rollback()
         logger.exception("Student registration failed during a SQLite operation")
